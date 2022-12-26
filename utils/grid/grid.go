@@ -4,6 +4,8 @@ import (
 	"advent-of-go/utils/maths"
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 )
 
 // Coords represents a coordinate in a two-dimensional grid
@@ -94,4 +96,33 @@ func RotateCoordsCounterclockwise(coords Coords, pivot Coords, degrees float64) 
 	x := (dx * cos) - (dy * sin) + float64(pivot.X)
 	y := (dx * sin) + (dy * cos) + float64(pivot.Y)
 	return Coords{ X: int(x), Y: int(y)}
+}
+
+// PerimeterSize returns an int of the number of points along the perimeter of the grid
+func PerimeterSize[T comparable](grid [][]T) int {
+	m, n := len(grid[0]), len(grid)
+	return (2 * (m - 1)) + (2 * (n - 1))
+}
+
+// IsInGrid determines if a given point is inside the bounds of a given grid
+func IsInGrid[T comparable](coords Coords, grid [][]T) bool {
+	return coords.X >= 0 && coords.Y >= 0 && coords.Y < len(grid) && coords.X < len(grid[coords.Y])
+}
+
+// ToString creates a unique string to represent coordinates
+func (c Coords) ToString() string {
+	return fmt.Sprintf("%d,%d", c.X, c.Y)
+}
+
+// ParseCoords parses a coordinate set from the formatted string
+func ParseCoords(str string) Coords {
+	parts := strings.Split(str, ",")
+	x, _ := strconv.Atoi(parts[0])
+	y, _ := strconv.Atoi(parts[1])
+	return Coords{ X: x, Y: y }
+}
+
+// ManhattanDistance returns the Mannattan distance between two coords (orthogonal)
+func (c Coords) ManhattanDistance(to Coords) int {
+	return maths.Abs(c.X - to.X) + maths.Abs(c.Y - to.Y)
 }
