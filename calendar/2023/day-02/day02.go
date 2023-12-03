@@ -73,9 +73,9 @@ func parseSets(setStrings []string) []set {
 }
 
 func parseSet(setString string) set {
-	redPattern := regexp.MustCompile(`([0-9]+) red`)
-	greenPattern := regexp.MustCompile(`([0-9]+) green`)
-	bluePattern := regexp.MustCompile(`([0-9]+) blue`)
+	redPattern := regexp.MustCompile(`[0-9]+ red`)
+	greenPattern := regexp.MustCompile(`[0-9]+ green`)
+	bluePattern := regexp.MustCompile(`[0-9]+ blue`)
 
 	red, green, blue := parseCount(setString, redPattern), parseCount(setString, greenPattern), parseCount(setString, bluePattern)
 
