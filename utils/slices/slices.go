@@ -5,8 +5,17 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
+
+func ParseIntsFromStrings(slice []string) []int {
+	ints := make([]int, len(slice))
+	for i, str := range slice {
+		ints[i], _ = strconv.Atoi(str)
+	}
+	return ints
+}
 
 func Unpack(slice []string, vars ...*string) {
 	for i, str := range slice {
