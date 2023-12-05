@@ -2,6 +2,7 @@ package main
 
 import (
 	"advent-of-go/utils/files"
+	"advent-of-go/utils/ranges"
 	"advent-of-go/utils/slices"
 	"math"
 	"strings"
@@ -20,9 +21,9 @@ func main() {
 }
 
 func solvePart1(input []string) int {
-	seeds, almanac := parseInput(input)
+	seeds, almanac := parseInput(input, false)
 
-	allDestinations := getMinimumLocation(almanac, seeds)
+	allDestinations := computeLocations(almanac, seeds)
 
 	min := math.MaxInt
 	for location := range allDestinations[len(allDestinations)-1] {
@@ -34,16 +35,11 @@ func solvePart1(input []string) int {
 }
 
 func solvePart2(input []string) int {
-	seedRange, almanac := parseInput(input)
+	seeds, almanac := parseInput(input, true)
 
 	min := math.MaxInt
-	for i := 0; i < len(seedRange); i += 2 {
-		println(i, seedRange[i], seedRange[i+1])
-		seeds := make([]int, seedRange[i+1])
-		for j := 0; j < seedRange[i+1]; j++ {
-			seeds[j] = seedRange[i] + j
-		}
-		allDestinations := getMinimumLocation(almanac, seeds)
+	for i := 0; i < len(seeds); i++ {
+		allDestinations := computeLocations(almanac, seeds)
 		for location := range allDestinations[len(allDestinations)-1] {
 			if location < min {
 				min = location
@@ -53,12 +49,12 @@ func solvePart2(input []string) int {
 	return min
 }
 
-func getMinimumLocation(almanac [][]*almanacMap, seeds []int) (allDestinations []map[int]int) {
+func computeLocations(almanac [][]*almanacMap, seeds []ranges.Range) (allDestinations []map[int]int) {
 	for i := 0; i < len(almanac)+1; i++ {
 		allDestinations = append(allDestinations, make(map[int]int))
 	}
 	for _, s := range seeds {
-		allDestinations[0][s] = -1
+		allDestinations[0][s.Start] = -1
 	}
 
 	for round, a := range almanac {
@@ -74,9 +70,20 @@ func getMinimumLocation(almanac [][]*almanacMap, seeds []int) (allDestinations [
 	return
 }
 
-func parseSeeds(seedsLine string) []int {
+func parseSeeds(seedsLine string, seedsAsRanges bool) []ranges.Range {
 	fields := strings.Fields(seedsLine)
-	return slices.ParseIntsFromStrings(fields[1:])
+	seedValues := slices.ParseIntsFromStrings(fields[1:])
+	seeds := []ranges.Range{}
+	for i := 0; i < len(seedValues); {
+		if seedsAsRanges {
+			seeds = append(seeds, ranges.NewWithLength(seedValues[i], seedValues[i+1]))
+			i += 2
+		} else {
+			seeds = append(seeds, ranges.NewWithLength(seedValues[i], 1))
+			i++
+		}
+	}
+	return seeds;
 }
 
 func parseMap(mapLine string) almanacMap {
@@ -88,8 +95,8 @@ func parseMap(mapLine string) almanacMap {
 	}
 }
 
-func parseInput(input []string) (seeds []int, maps [][]*almanacMap) {
-	seeds = parseSeeds(input[0])
+func parseInput(input []string, seedsAsRanges bool) (seeds []ranges.Range, maps [][]*almanacMap) {
+	seeds = parseSeeds(input[0], seedsAsRanges)
 	currentMapSet := []*almanacMap{}
 	for i := 3; i < len(input); i++ {
 		if input[i] == "" {
