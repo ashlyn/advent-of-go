@@ -2,6 +2,7 @@ package main
 
 import (
 	"advent-of-go/utils/files"
+	"advent-of-go/utils/maths"
 	"advent-of-go/utils/ranges"
 	"advent-of-go/utils/slices"
 	"math"
@@ -9,9 +10,8 @@ import (
 )
 
 type almanacMap struct {
-	destinationStart int
-	sourceStart int
-	rangeLength int
+	destinationRange ranges.Range
+	sourceRange      ranges.Range
 }
 
 func main() {
@@ -22,52 +22,61 @@ func main() {
 
 func solvePart1(input []string) int {
 	seeds, almanac := parseInput(input, false)
-
-	allDestinations := computeLocations(almanac, seeds)
-
-	min := math.MaxInt
-	for location := range allDestinations[len(allDestinations)-1] {
-		if location < min {
-			min = location
-		}
-	}
-	return min
+	return getMinimumLocations(almanac, seeds)
 }
 
 func solvePart2(input []string) int {
 	seeds, almanac := parseInput(input, true)
 
-	min := math.MaxInt
-	for i := 0; i < len(seeds); i++ {
-		allDestinations := computeLocations(almanac, seeds)
-		for location := range allDestinations[len(allDestinations)-1] {
-			if location < min {
-				min = location
-			}
-		}
-	}
-	return min
+	return getMinimumLocations(almanac, seeds)
 }
 
-func computeLocations(almanac [][]*almanacMap, seeds []ranges.Range) (allDestinations []map[int]int) {
-	for i := 0; i < len(almanac)+1; i++ {
-		allDestinations = append(allDestinations, make(map[int]int))
-	}
-	for _, s := range seeds {
-		allDestinations[0][s.Start] = -1
+func getMinimumLocations(almanac [][]*almanacMap, seeds []ranges.Range) int {
+	// keep seeds/current values (e.g. turn to "soil" as ranges)
+	// split ranges based on current transformation map
+
+	currentValues := make([]ranges.Range, len(seeds))
+	for i := range seeds {
+		currentValues[i] = seeds[i]
 	}
 
-	for round, a := range almanac {
-		for sourceValue, destinationValue := range allDestinations[round] {
-			if destinationValue == -1 {
-				dest := getDestination(sourceValue, a)
-				allDestinations[round][sourceValue] = dest
-				allDestinations[round+1][dest] = -1
+	for round := range almanac {
+		nextValues := []ranges.Range{}
+
+		for i := 0; i < len(currentValues); i++ {
+			current := currentValues[i]
+			hasOverlap := false
+			for _, a := range almanac[round] {
+				if !current.Overlaps(a.sourceRange) {
+					continue
+				}
+				hasOverlap = true
+				splits := current.SplitOn(a.sourceRange)
+
+				for _, split := range splits {
+					if (a.sourceRange.ContainsRange(split)) {
+						delta := a.sourceRange.Start - a.destinationRange.Start
+						transformed := ranges.New(split.Start - delta, split.End - delta)
+						nextValues = append(nextValues, transformed)
+					} else {
+						currentValues = append(currentValues, split)
+					}
+				}
+			}
+			if !hasOverlap {
+				nextValues = append(nextValues, current)
 			}
 		}
+		currentValues = make([]ranges.Range, len(nextValues))
+		copy(currentValues, nextValues)
 	}
 
-	return
+	min := math.MaxInt
+	for _, v := range currentValues {
+		min = maths.Min(min, v.Start)
+	}
+
+	return min
 }
 
 func parseSeeds(seedsLine string, seedsAsRanges bool) []ranges.Range {
@@ -89,9 +98,8 @@ func parseSeeds(seedsLine string, seedsAsRanges bool) []ranges.Range {
 func parseMap(mapLine string) almanacMap {
 	values := slices.ParseIntsFromStrings(strings.Fields(mapLine))
 	return almanacMap{
-		destinationStart: values[0],
-		sourceStart: values[1],
-		rangeLength: values[2],
+		destinationRange: ranges.NewWithLength(values[0], values[2]),
+		sourceRange:      ranges.NewWithLength(values[1], values[2]),
 	}
 }
 
@@ -116,8 +124,8 @@ func parseInput(input []string, seedsAsRanges bool) (seeds []ranges.Range, maps 
 
 func getDestination(source int, maps []*almanacMap) int {
 	for _, m := range maps {
-		if source >= m.sourceStart && source < m.sourceStart + m.rangeLength {
-			return m.destinationStart + (source - m.sourceStart)
+		if m.sourceRange.Contains(source) {
+			return m.destinationRange.Start + (source - m.sourceRange.Start)
 		}
 	}
 

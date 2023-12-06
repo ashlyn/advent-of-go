@@ -1,5 +1,7 @@
 package ranges
 
+import "fmt"
+
 // Range is a range of integers, inclusive
 type Range struct {
 	Start int
@@ -43,4 +45,45 @@ func (r Range) Iterator() []int {
 		iterator = append(iterator, i)
 	}
 	return iterator
+}
+
+// SplitOn takes the original range and splits it into component parts, based on the given range
+func (r Range) SplitOn(r2 Range) (ranges []Range) {
+	if r2.ContainsRange(r) || !r2.Overlaps(r) {
+		ranges = append(ranges, Range{ Start: r.Start, End: r.End})
+	} else if r2.Contains(r.Start) {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.End })
+		ranges = append(ranges, Range{ Start: r2.End + 1, End: r.End })
+	} else if r2.Contains(r.End) {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.Start - 1 })
+		ranges = append(ranges, Range{ Start: r2.Start, End: r.End })
+	} else {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.Start - 1 })
+		ranges = append(ranges, Range{ Start: r2.Start, End: r2.End })
+		ranges = append(ranges, Range{ Start: r2.End + 1, End: r.End })
+	}
+	return
+}
+
+// SplitOnWithoutOriginal takes the original range and splits it into component parts, based on the given range, but does not include the original range
+func (r Range) SplitOnWithoutOriginal(r2 Range) (ranges []Range) {
+	if r2.ContainsRange(r) || !r2.Overlaps(r) {
+		return
+	} else if r2.Contains(r.Start) {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.End })
+		ranges = append(ranges, Range{ Start: r2.End + 1, End: r.End })
+	} else if r2.Contains(r.End) {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.Start - 1 })
+		ranges = append(ranges, Range{ Start: r2.Start, End: r.End })
+	} else {
+		ranges = append(ranges, Range{ Start: r.Start, End: r2.Start - 1 })
+		ranges = append(ranges, Range{ Start: r2.Start, End: r2.End })
+		ranges = append(ranges, Range{ Start: r2.End + 1, End: r.End })
+	}
+	return
+}
+
+// String returns a string representation of the range
+func (r Range) String() string {
+	return "[" + fmt.Sprintf("%d", r.Start) + "-" + fmt.Sprintf("%d", r.End) + "]"
 }
