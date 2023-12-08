@@ -2,6 +2,7 @@ package main
 
 import (
 	"advent-of-go/utils/files"
+	"advent-of-go/utils/maths"
 	"regexp"
 	"strings"
 )
@@ -19,14 +20,15 @@ func main() {
 
 func solvePart1(input []string) int {
 	instructions, nodes, _ := parseMap(input)
-	return solve(instructions, nodes)
+	return solve(instructions, nodes, "AAA")
 }
 
 func solvePart2(input []string) int {
-	result := 0
-
-
-
+	result := 1
+	instructions, nodes, endsWithA := parseMap(input)
+	for _, start := range endsWithA {
+		result = maths.Lcm(result, solve(instructions, nodes, start))
+	}
 	return result
 }
 
@@ -44,14 +46,14 @@ func parseMap(input []string) (string, map[string]node, []string) {
 }
 
 func parseLine(line string) (string, node) {
-	nodePattern := regexp.MustCompile(`[A-Z]+`)
+	nodePattern := regexp.MustCompile(`[A-Z0-9]+`)
 	parts := nodePattern.FindAllString(line, -1)
 	return parts[0], node{ left: parts[1], right: parts[2]}
 }
 
-func solve(instructions string, nodes map[string]node) int {
-	current, steps := "AAA", 0
-	for current != "ZZZ" {
+func solve(instructions string, nodes map[string]node, start string) int {
+	current, steps := start, 0
+	for !strings.HasSuffix(current, "Z") {
 		i := steps % len(instructions)
 		if instructions[i] == 'L' {
 			current = nodes[current].left
