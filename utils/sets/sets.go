@@ -101,6 +101,20 @@ func (set *Set) Intersect(setToIntersectWith Set) Set {
 	return resultSet
 }
 
+func (set *Set) Union(setToUnionWith Set) Set {
+	resultSet := New()
+
+	for element := range set.elements {
+		resultSet.Add(element)
+	}
+
+	for element := range setToUnionWith.elements {
+		resultSet.Add(element)
+	}
+
+	return resultSet
+}
+
 func (set Set) String() string {
 	str := "{ "
 	for element := range set.elements {
