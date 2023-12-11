@@ -4,8 +4,7 @@ import (
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/grid"
 	"advent-of-go/utils/sets"
-	"advent-of-go/utils/slices"
-	"fmt"
+	"strings"
 )
 
 const (
@@ -35,7 +34,7 @@ func main() {
 
 func solvePart1(input []string) int {
 	pipes, start := parseInput(input)
-	loop := findLoop(pipes, start)
+	loop, _ := findLoop(pipes, start)
 	return loop.Size() / 2 
 }
 
@@ -65,8 +64,9 @@ func parseInput(input []string) (map[string]rune, grid.Coords) {
 	return pipes, start
 }
 
-func findLoop(pipes map[string]rune, start grid.Coords) sets.Set {
+func findLoop(pipes map[string]rune, start grid.Coords) (sets.Set, bool) {
 	visited := sets.New()
+	startNorth := false
 	visited.Add(start.ToString())
 
 	candidateDirections := []string{north, south, east, west}
@@ -76,17 +76,25 @@ func findLoop(pipes map[string]rune, start grid.Coords) sets.Set {
 		next := grid.Coords{ X: start.X + dir.X, Y: start.Y + dir.Y }
 		current, moving, canMove = getNextCoords(next, dir, pipes[next.ToString()])
 		if canMove {
+			if direction == north {
+				startNorth = true
+			}
 			visited.Add(next.ToString())
 			break
 		}
 	}
 
-	visited.Add(current.ToString())
 	for pipes[current.ToString()] != 'S' {
-		current, moving, canMove = getNextCoords(current, moving, pipes[current.ToString()])
 		visited.Add(current.ToString())
+		current, moving, canMove = getNextCoords(current, moving, pipes[current.ToString()])
 	}
-	return visited
+
+	if moving.X == 0 && moving.Y == -1 {
+		startNorth = true
+	}
+
+
+	return visited, startNorth
 }
 
 func getNextCoords(currentPosition grid.Coords, currentDirection grid.Coords, piece rune) (grid.Coords, grid.Coords, bool) {
@@ -141,122 +149,25 @@ func getNextCoords(currentPosition grid.Coords, currentDirection grid.Coords, pi
 }
 
 func findEnclosed(input []string) sets.Set {
-	enclosed, visited := sets.New(), sets.New()
+	enclosed := sets.New()
 	pipes, start := parseInput(input)
-	loop := findLoop(pipes, start)
+	loop, startNorth := findLoop(pipes, start)
 
-	// go through each tile
-	// if in loop, do nothing
-	// already enclosed, do nothing
-	// otherwise
-	// add to current group
-	// if current group presumed enclosed
-	// if edge, current group not enclosed
-	// if loop and not enclosed, current group not enclosed
-	// if not in loop, add neighbors to queue
-	// if queue empty, add current group to appropriate set
-	// empty current group
-
-	for y := 0; y < len(input); y++ {
-		for x := 0; x < len(input[y]); x++ {
-			currentGroup, isEnclosed := sets.New(), true
-			queue := sets.New()
-			queue.Add((grid.Coords{ X: x, Y: y }).ToString())
-			for queue.Size() > 0 {
-				key := queue.Iterator()[0]
-				queue.Remove(key)
-				c := grid.ParseCoords(key)
-
-				if enclosed.Has(key) || visited.Has(key) || currentGroup.Has(key) {
-					continue
-				}
-				visited.Add(key)
-				if loop.Has(key) {
-					if hasGap(c, pipes) {
-						println("gap")
-						// todo handle gaps better
-						isEnclosed = false
-					}
-					continue
-				}
-				if c.X == 0 || c.Y == 0 || c.X == len(input[c.Y]) - 1 || c.Y == len(input) - 1 {
-					isEnclosed = false
-				}
-				currentGroup.Add(key)
-				if c.X > 0 {
-					queue.Add((grid.Coords{ X: c.X - 1, Y: c.Y }).ToString())
-				}
-				if c.X < len(input[c.Y]) - 1 {
-					queue.Add((grid.Coords{ X: c.X + 1, Y: c.Y }).ToString())
-				}
-				if c.Y > 0 {
-					queue.Add((grid.Coords{ X: c.X, Y: c.Y - 1 }).ToString())
-				}
-				if c.Y < len(input) - 1 {
-					queue.Add((grid.Coords{ X: c.X, Y: c.Y + 1 }).ToString())
-				}
-			}
-			if isEnclosed && currentGroup.Size() > 0 {
-				fmt.Printf("Enclosed: %v\n", currentGroup)
-				enclosed = enclosed.Union(currentGroup)
+	nonNorthTiles := "-7F"
+	if !startNorth {
+		nonNorthTiles += "S"
+	}
+	for y := 0; y < len(input) - 1; y++ {
+		isEnclosed := false
+		for x := 0; x < len(input[y]) - 1; x++ {
+			c := grid.Coords{X: x, Y: y}
+			key := c.ToString()
+			if loop.Has(key) && !strings.Contains(nonNorthTiles, string(pipes[key])) {
+				isEnclosed = !isEnclosed
+			} else if !loop.Has(key) && isEnclosed {
+				enclosed.Add(key)
 			}
 		}
 	}
-	println(visited.Size(), loop.Size(), enclosed.Size())
-
 	return enclosed
-}
-
-func getConnections(pipe rune)	[]string {
-	var directionsToCheck []string
-	
-	switch pipe {
-	case '|':
-		directionsToCheck = []string{north, south}
-	case '-':
-		directionsToCheck = []string{east, west}
-	case 'L':
-		directionsToCheck = []string{north, east}
-	case 'J':
-		directionsToCheck = []string{north, west}
-	case '7':
-		directionsToCheck = []string{south, west}
-	case 'F':
-		directionsToCheck = []string{south, east}
-	case 'S':
-		directionsToCheck = []string{north, south, east, west}
-	}
-	return directionsToCheck
-}
-
-func hasGap(c grid.Coords, pipes map[string]rune) bool {
-	// todo: fix gap logic
-	current := pipes[c.ToString()]
-	if current == 'S' {
-		return false
-	}
-	directionsToCheck := getConnections(current)
-
-	for _, direction := range directionsToCheck {
-		dir := directionMap[direction]
-		next := grid.Coords{ X: c.X + dir.X, Y: c.Y + dir.Y }
-		possible := getConnections(pipes[next.ToString()])
-		if current == '7' {
-			fmt.Printf("%v%v%v\n", possible, next, string(pipes[next.ToString()]))
-		}
-		if direction == north && !slices.Contains(possible, south) {
-			return true
-		}
-		if direction == south && !slices.Contains(possible, north) {
-			return true
-		}
-		if direction == east && !slices.Contains(possible, west) {
-			return true
-		}
-		if direction == west && !slices.Contains(possible, east) {
-			return true
-		}
-	}
-
-	return false
 }
