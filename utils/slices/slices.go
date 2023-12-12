@@ -173,6 +173,46 @@ func GeneratePermutations(items []int) [][]int {
 	return permutations
 }
 
+func GenerateCombinationsLengthNChannel(items []int, n int, abort <-chan []int) <-chan []int {
+	c := make(chan []int)
+	go func() {
+		defer close(c)
+		length := len(items)
+		itemsCopy := make([]int, length)
+		copy(itemsCopy, items)
+
+		select {
+		case <-abort:
+			return
+		default:
+			if length == 0 || n > length || n == 0 {
+				c <- []int{}
+				return
+			} else if n == length {
+				initial := make([]int, length)
+				copy(initial, itemsCopy)
+				c <- initial
+				return
+			}
+	
+			if n == length {
+				for _, element := range itemsCopy {
+					c <- []int{element}
+				}
+			}
+	
+			first := itemsCopy[0]
+			for combo := range GenerateCombinationsLengthNChannel(itemsCopy[1:], n-1, abort) {
+				c <- append([]int{first}, combo...)
+			}
+			for combo := range GenerateCombinationsLengthNChannel(itemsCopy[1:], n, abort) {
+				c <- combo
+			}
+		}
+	}()
+	return c
+}
+
 func GenerateCombinationsLengthN(items []int, n int) [][]int {
 	length := len(items)
 	itemsCopy := make([]int, length)
