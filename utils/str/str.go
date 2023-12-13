@@ -23,3 +23,13 @@ func ReplaceCharAt(str string, replacement string, index int) string {
 
 	return ret
 }
+
+func Reverse(str string) string {
+	ret := ""
+
+	for i := len(str) - 1; i >= 0; i-- {
+		ret += string(str[i])
+	}
+
+	return ret
+}
