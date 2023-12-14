@@ -80,7 +80,7 @@ func isReflectedAt(input string, index int) bool {
 	return str.Reverse(left) == right
 }
 
-func reflectionColumn(frame []string) []int {
+func reflectionColumns(frame []string) []int {
 	reflections := []int{}
 	for i := 1; i < len(frame[0]); i++ {
 		reflectedAtI := true
@@ -94,7 +94,7 @@ func reflectionColumn(frame []string) []int {
 	return reflections
 }
 
-func reflectionRow(frame []string) []int {
+func reflectionRows(frame []string) []int {
 	reflections := []int{}
 	if len(frame) < 2 {
 		return reflections
@@ -115,7 +115,7 @@ func reflectionRow(frame []string) []int {
 }
 
 func findReflection(frame []string) ([]int, []int) {
-	return reflectionColumn(frame), reflectionRow(frame)
+	return reflectionColumns(frame), reflectionRows(frame)
 }
 
 func findNewValue(values []int, originalValue int) int {
