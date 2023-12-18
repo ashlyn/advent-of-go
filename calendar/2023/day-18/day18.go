@@ -3,6 +3,7 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/grid"
+	"advent-of-go/utils/polygon"
 	"advent-of-go/utils/sets"
 	"math"
 	"strconv"
@@ -23,41 +24,20 @@ func solvePart1(input []string) int {
 }
 
 func solvePart2(input []string) int {
-	return findLagoonArea(parseInstructions(input, parseHexInstruction))
+	instructions := parseInstructions(input, parseHexInstruction)
+	vertices := findLagoonVertices(instructions)
+	return polygon.Perimeter(vertices) + polygon.InteriorArea(vertices) 
 }
 
-func findPolygonPerimeter(instructions []instruction) ([][2]int, int) {
+func findLagoonVertices(instructions []instruction) []grid.Coords {
 	x, y := 0, 0
-	perimeter := 0
-	vertices := [][2]int{}
+	vertices := []grid.Coords{}
 	for _, inst := range instructions {
 		endX, endY := x + (inst.direction.X * inst.spaces), y + (inst.direction.Y * inst.spaces)
-		perimeter += inst.spaces
-		vertices = append(vertices, [2]int{ endX, endY })
+		vertices = append(vertices, grid.Coords{ X: endX, Y: endY })
 		x, y = endX, endY
 	}
-	return vertices, perimeter
-}
-
-func calculatePolygonArea(vertices [][2]int) int {
-	area := 0
-	vertexCount := len(vertices)
-	// Cross-multiply verticies per Shoelace formula
-	// https://en.wikipedia.org/wiki/Shoelace_formula
-	for i := 0; i < vertexCount; i++ {
-		area += vertices[i][0] * vertices[(i + 1) % vertexCount][1]
-		area -= vertices[(i + 1) % vertexCount][0] * vertices[i][1]
-	}
-	return area / 2
-}
-
-func findLagoonArea(instructions []instruction) int {
-	vertices, perimeter := findPolygonPerimeter(instructions)
-	area := calculatePolygonArea(vertices)
-	// find interior/enclosed area using Pick's theorem
-	// https://en.wikipedia.org/wiki/Pick%27s_theorem
-	interiorArea := area - (perimeter / 2) + 1
-	return interiorArea + perimeter
+	return vertices
 }
 
 func digPerimeter(instructions []instruction) (sets.Set, grid.Coords, grid.Coords) {
