@@ -7,8 +7,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-
-	"github.com/twpayne/go-geom"
 )
 
 func main() {
@@ -20,25 +18,46 @@ func main() {
 func solvePart1(input []string) int {
 	instructions := parseInstructions(input, parseInstruction)
 	perimeter, minCoords, maxCoords := digPerimeter(instructions)
-	area := getArea(perimeter, minCoords, maxCoords)
+	area := floodfillCalculateArea(perimeter, minCoords, maxCoords)
 	return area.Size()
 }
 
 func solvePart2(input []string) int {
-	return useGeometry(parseInstructions(input, parseHexInstruction))
+	return findLagoonArea(parseInstructions(input, parseHexInstruction))
 }
 
-func useGeometry(instructions []instruction) int {
+func findPolygonPerimeter(instructions []instruction) ([][2]int, int) {
 	x, y := 0, 0
-	vertices := [][]geom.Coord{{{float64(x), float64(y)}}}
+	perimeter := 0
+	vertices := [][2]int{}
 	for _, inst := range instructions {
 		endX, endY := x + (inst.direction.X * inst.spaces), y + (inst.direction.Y * inst.spaces)
-		vertices[0] = append(vertices[0], geom.Coord{float64(endX), float64(endY)})
+		perimeter += inst.spaces
+		vertices = append(vertices, [2]int{ endX, endY })
 		x, y = endX, endY
 	}
-	poly := geom.NewPolygon(geom.XY).MustSetCoords(vertices)
-	totalArea := poly.Area() + (poly.LinearRing(0).Length() / 2) + 1
-	return int(totalArea)
+	return vertices, perimeter
+}
+
+func calculatePolygonArea(vertices [][2]int) int {
+	area := 0
+	vertexCount := len(vertices)
+	// Cross-multiply verticies per Shoelace formula
+	// https://en.wikipedia.org/wiki/Shoelace_formula
+	for i := 0; i < vertexCount; i++ {
+		area += vertices[i][0] * vertices[(i + 1) % vertexCount][1]
+		area -= vertices[(i + 1) % vertexCount][0] * vertices[i][1]
+	}
+	return area / 2
+}
+
+func findLagoonArea(instructions []instruction) int {
+	vertices, perimeter := findPolygonPerimeter(instructions)
+	area := calculatePolygonArea(vertices)
+	// find interior/enclosed area using Pick's theorem
+	// https://en.wikipedia.org/wiki/Pick%27s_theorem
+	interiorArea := area - (perimeter / 2) + 1
+	return interiorArea + perimeter
 }
 
 func digPerimeter(instructions []instruction) (sets.Set, grid.Coords, grid.Coords) {
@@ -67,7 +86,7 @@ func digPerimeter(instructions []instruction) (sets.Set, grid.Coords, grid.Coord
 	return perimeter, grid.Coords{ X: minX, Y: minY }, grid.Coords{ X: maxX, Y: maxY }
 }
 
-func getArea(perimeter sets.Set, minCoords grid.Coords, maxCoords grid.Coords) sets.Set {
+func floodfillCalculateArea(perimeter sets.Set, minCoords grid.Coords, maxCoords grid.Coords) sets.Set {
 	area := perimeter.Copy()
 	queue := []grid.Coords{ { X: 1, Y: 1 } }
 	directions := []grid.Coords{ { X: 1, Y: 0 }, { X: -1, Y: 0 }, { X: 0, Y: 1 }, { X: 0, Y: -1 } }
@@ -98,6 +117,7 @@ func parseInstructions(input []string, parse func(input string) instruction) []i
 	}
 	return instructions
 }
+
 func parseInstruction(input string) instruction {
 	parts := strings.Fields(input)
 	direction := grid.Origin
