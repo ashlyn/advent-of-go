@@ -6,16 +6,15 @@ import (
 )
 
 // Area calculates the area of a polygon given a list of vertices
-// using the Shoelace formula
+// by cross-multiplying vertices per the Shoelace formula
 // https://en.wikipedia.org/wiki/Shoelace_formula
 func Area(vertices []grid.Coords) int {
 	area := 0
 	vertexCount := len(vertices)
-	// Cross-multiply verticies per Shoelace formula
-	// https://en.wikipedia.org/wiki/Shoelace_formula
 	for i := 0; i < vertexCount; i++ {
-		area += vertices[i].X * vertices[(i + 1) % vertexCount].Y
-		area -= vertices[(i + 1) % vertexCount].X * vertices[i].Y
+		nextI := (i + 1) % vertexCount
+		area += vertices[i].X * vertices[nextI].Y
+		area -= vertices[nextI].X * vertices[i].Y
 	}
 
 	return maths.Abs(area / 2)
@@ -31,8 +30,9 @@ func InteriorArea(vertices []grid.Coords) int {
 // Perimeter calculates the perimeter of a polygon given a list of vertices
 func Perimeter(vertices []grid.Coords) int {
 	perimeter := 0
-	for i := 0; i < len(vertices); i++ {
-		next := (i + 1) % len(vertices)
+	vertexCount := len(vertices)
+	for i := 0; i < vertexCount; i++ {
+		next := (i + 1) % vertexCount
 		perimeter += vertices[i].ManhattanDistance(vertices[next])
 	}
 	return perimeter
