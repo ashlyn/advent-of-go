@@ -63,11 +63,11 @@ func calculateValidCombinations(criteria map[string][2]int) int {
 	return result
 }
 
-func generateAcceptanceCriteria(currentWorkflow string, currentTokenIndex int, rules map[string][]string, originalCriteria map[string][2]int) int {
+func generateAcceptanceCriteria(currentWorkflow string, currentTokenIndex int, rules map[string][]string, criteria map[string][2]int) int {
 	gt, lt := ">", "<"
 
 	if currentWorkflow == "A" {
-		return calculateValidCombinations(originalCriteria)
+		return calculateValidCombinations(criteria)
 	}
 	if currentWorkflow == "R" {
 		return 0
@@ -78,11 +78,11 @@ func generateAcceptanceCriteria(currentWorkflow string, currentTokenIndex int, r
 	if strings.Contains(currentToken, gt) || strings.Contains(currentToken, lt) {
 		label, operator := currentToken[0:1], currentToken[1:2]
 		value, _ := strconv.Atoi(currentToken[2:])
-		currentRange := originalCriteria[label]
+		currentRange := criteria[label]
 		if (operator == lt && currentRange[0] >= value) || (operator == gt && currentRange[1] <= value) {
 			return 0
 		} else if (operator == lt && currentRange[1] < value) || (operator == gt && currentRange[0] > value) {
-			return generateAcceptanceCriteria(currentWorkflow, currentTokenIndex + 1, rules, originalCriteria)
+			return generateAcceptanceCriteria(currentWorkflow, currentTokenIndex + 1, rules, criteria)
 		} else if operator == lt {
 			rejectedRange = [2]int{ value, currentRange[1] }
 			acceptedRange = [2]int{ currentRange[0], value - 1 }
@@ -92,7 +92,7 @@ func generateAcceptanceCriteria(currentWorkflow string, currentTokenIndex int, r
 		}
 
 		rejectedCriteria, acceptedCriteria := map[string][2]int{}, map[string][2]int{}
-		for k, v := range originalCriteria {
+		for k, v := range criteria {
 			if k == label {
 				rejectedCriteria[k] = rejectedRange
 				acceptedCriteria[k] = acceptedRange
@@ -104,7 +104,7 @@ func generateAcceptanceCriteria(currentWorkflow string, currentTokenIndex int, r
 		return generateAcceptanceCriteria(currentRule[currentTokenIndex + 1], 0, rules, acceptedCriteria) + generateAcceptanceCriteria(currentWorkflow, currentTokenIndex + 2, rules, rejectedCriteria)
 	}
 	
-	return generateAcceptanceCriteria(currentToken, 0, rules, originalCriteria)
+	return generateAcceptanceCriteria(currentToken, 0, rules, criteria)
 }
 
 func calulateTotalPartRating(part map[string]int) int {

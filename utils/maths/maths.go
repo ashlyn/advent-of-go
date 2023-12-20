@@ -92,6 +92,15 @@ func PrimeFactors(n int) map[int]int {
 	return primes
 }
 
+// PrimeFactorsSlice returns a slice of prime factors of n
+func PrimeFactorsSlice(n int) []int {
+	factors := []int{}
+	for factor := range PrimeFactors(n) {
+		factors = append(factors, factor)
+	}
+	return factors
+}
+
 // SumOfDivisors calculates the sum of all divisors of a number n
 func SumOfDivisors(n int) int {
 	factors := PrimeFactors(n)
