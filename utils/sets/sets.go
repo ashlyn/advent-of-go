@@ -42,6 +42,12 @@ func (set *Set) Remove(element string) {
 	}
 }
 
+func (set *Set) RemoveSet(setToRemove Set) {
+	for element := range setToRemove.elements {
+		set.Remove(element)
+	}
+}
+
 func (set *Set) Wipe() {
 	set.elements = make(map[string]types.Nil)
 }
