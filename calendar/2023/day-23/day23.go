@@ -47,33 +47,51 @@ func findLongestPath(input []string) int {
 
 	longestPath := -1
 
-	queue := []queueItem{ { current: start, visited: &visited } }
-	for len(queue) > 0 {
-		currentItem := queue[0]
-		queue = queue[1:]
-		if currentItem.current == target && currentItem.visited.Size() - 1 > longestPath {
-			longestPath = currentItem.visited.Size() - 1
-			continue
-		}
-		for _, d := range directions {
-			nextCoords := grid.Coords{ X: currentItem.current.X + d.X, Y: currentItem.current.Y + d.Y }
-			nextKey := nextCoords.ToString()
-			if walkable.Has(nextKey) && !currentItem.visited.Has(nextKey) {
-				nextCharacter := input[nextCoords.Y][nextCoords.X]
-				if (nextCharacter == '.' ||
-					(nextCharacter == '>' && d.X == 1) ||
-					(nextCharacter == '<' && d.X == -1) ||
-					(nextCharacter == '^' && d.Y == -1) ||
-					(nextCharacter == 'v' && d.Y == 1)) {
-					newVisited := currentItem.visited.Copy()
-					newVisited.Add(nextKey)
-					queue = append(queue, queueItem{ current: nextCoords, visited: &newVisited })
+	queue := []*queueItem{ { current: start, visited: &visited } }
+	queueLoop:
+		for len(queue) > 0 {
+			currentItem := queue[0]
+			queue = queue[1:]
+			if currentItem.current == target && currentItem.visited.Size() - 1 > longestPath {
+				longestPath = currentItem.visited.Size() - 1
+				continue queueLoop
+			}
+			for {
+				validNextCoords := []grid.Coords{}
+				for _, d := range directions {
+					nextCoords := grid.Coords{ X: currentItem.current.X + d.X, Y: currentItem.current.Y + d.Y }
+					nextKey := nextCoords.ToString()
+					if walkable.Has(nextKey) && !currentItem.visited.Has(nextKey) {
+						nextCharacter := input[nextCoords.Y][nextCoords.X]
+						if (nextCharacter == '.' ||
+							(nextCharacter == '>' && d.X == 1) ||
+							(nextCharacter == '<' && d.X == -1) ||
+							(nextCharacter == '^' && d.Y == -1) ||
+							(nextCharacter == 'v' && d.Y == 1)) {
+							validNextCoords = append(validNextCoords, nextCoords)
+						}
+					}
+				}
+
+				if currentItem.current == target && currentItem.visited.Size() - 1 > longestPath {
+					longestPath = currentItem.visited.Size() - 1
+					continue queueLoop
+				}
+				if len(validNextCoords) > 0 {
+					for i := 1; i < len(validNextCoords); i++ {
+						nextCoords := validNextCoords[i]
+						newVisited := currentItem.visited.Copy()
+						newVisited.Add(nextCoords.ToString())
+						queue = append(queue, &queueItem{ current: nextCoords, visited: &newVisited })
+					}
+					nextCoords := validNextCoords[0]
+					currentItem.visited.Add(nextCoords.ToString())
+					currentItem = &queueItem{ current: nextCoords, visited: currentItem.visited }
+				} else {
+					continue queueLoop
 				}
 			}
 		}
-
-	}
-
 	return longestPath
 }
 
