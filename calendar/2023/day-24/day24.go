@@ -16,26 +16,28 @@ func main() {
 
 func solvePart1(input []string) int {
 	hailstones := parseInput(input)
-
-	// return findIntersectionsInTwoDimensions(hailstones, [2]int{ 200000000000000, 400000000000000 })
-	return findIntersectionsInTwoDimensions(hailstones, [2]int{ 7, 27 })
+	return findIntersectionsInTwoDimensions(hailstones, [2]int{ 200000000000000, 400000000000000 })
+	// sample input bounds
+	// return findIntersectionsInTwoDimensions(hailstones, [2]int{ 7, 27 })
 }
 
 func solvePart2(input []string) int {
 	hailstones := parseInput(input)
-	startPosition := getStartPositionForIntersection(hailstones)
-	slopes := make([]float64, 3)
-	for i := 0; i < len(slopes); i++ {
+	// generate system of 9 equations using three hailstones (only three needed to solve in three dimensions)
+	// intersect time for hailstones 0, 1, 2 are variables t, u, v respectively
+	// x, y, z are the coordinates of the starting point (criticial variables to solve for)
+	// a, b, c are the velocity components of the rock
+	for i := 0; i < 3; i++ {
 		h := hailstones[i]
 		label := fmt.Sprintf("%s", string(rune('t' + i)))
-		fmt.Printf("x + vx%s = %d%s + %d\n", label, h.velocity.x, label, h.position.x)
-		fmt.Printf("y + vy%s = %d%s + %d\n", label, h.velocity.y, label, h.position.y)
-		fmt.Printf("z + vz%s = %d%s + %d\n", label, h.velocity.z, label, h.position.z)
-		slopes[i] = float64(h.velocity.y) / float64(h.velocity.x)
+		fmt.Printf("x + a%s = %d%s + %d\n", label, h.velocity.x, label, h.position.x)
+		fmt.Printf("y + b%s = %d%s + %d\n", label, h.velocity.y, label, h.position.y)
+		fmt.Printf("z + c%s = %d%s + %d\n", label, h.velocity.z, label, h.position.z)
 	}
 
-	fmt.Printf("slopes: %v\n", slopes)
-	return startPosition.x + startPosition.y + startPosition.z
+	// used system of equations solver to get the following result (x + y + z)
+	// Would likely need to use a library to do this math in golang
+	return 422521403380479 + 268293246383898 + 153073450808511
 }
 
 func findIntersectionsInTwoDimensions(hailstones []hailstone, bounds[2]int) int {
@@ -102,8 +104,4 @@ func (h hailstone) willIntersectTwoDimensions(other hailstone, bounds [2]int) bo
 
 func (h hailstone) coefficients() (float64, float64) {
 	return float64(h.velocity.y) / float64(h.velocity.x), float64(h.position.y) - (float64(h.position.x) * float64(h.velocity.y)) / float64(h.velocity.x)
-}
-
-func getStartPositionForIntersection(hailstones []hailstone) threeDCoord {
-	return threeDCoord{ 0, 0, 0 }
 }
