@@ -3,48 +3,94 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/priorityqueue"
-	"advent-of-go/utils/sets"
 	"advent-of-go/utils/slices"
 	"container/heap"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
+	"time"
 )
 
 func main() {
 	input := files.ReadFile(25, 2023, "\n")
+	sw := time.Now()
 	println(solvePart1(input))
+	fmt.Printf("Part 1 took %s\n", time.Since(sw))
 	println(solvePart2(input))
 }
 
+type edgeCount struct {
+	edge []string
+	count int
+}
 func solvePart1(input []string) int {
-	graph, source := parseInput(input)
-	findGroupSizes(graph, source)
+	graph, _ := parseInput(input)
+	// Able to reliably get the correct answer by using the top 8 edges after 25 traversals in ~5s
+	// lower sample sizes = faster execution times but higher likelihood of missing the correct combination
+	return trySplittingGraph(graph, 3, 25, 10)
+}
 
-	// naive solution, could optimize for "weakest links" in the graph
-	pairSet := sets.New()
-	for key, connected := range graph {
-		for _, v := range connected {
-			pairSet.Add(getKey(key, v))
+func trySplittingGraph(graph map[string][]string, edgesToRemove, traversalAttempts, useTopNEdges int) int {
+	traversalCount := map[string]int{}
+
+	// Run dijkstra n times to get a sample of which edges are traversed the most
+	for i := 0; i < traversalAttempts; i++ {
+		node := ""
+		for key := range graph {
+			node = key
+			break
 		}
+		findGroupSizes(graph, node, traversalCount)
 	}
-	combinations := slices.GenerateCombinationsLengthNGeneric(pairSet.Iterator(), 3)
+
+	// Take the top n most traversed edges and try removing any random three
+	edgeCounts := make([]edgeCount, len(traversalCount))
+	i := 0
+	for key, count := range traversalCount {
+		edgeCounts[i] = edgeCount{edge: parseKey(key), count: count}
+		i++
+	}
+	sort.Slice(edgeCounts, func(i, j int) bool {
+		return edgeCounts[i].count < edgeCounts[j].count
+	})
+	candidateEdges := []string{}
+	for _, edgeCount := range edgeCounts[len(edgeCounts) - useTopNEdges:] {
+		candidateEdges = append(candidateEdges, getKey(edgeCount.edge[0], edgeCount.edge[1]))
+	}
+	combinations := slices.GenerateCombinationsLengthNGeneric(candidateEdges, edgesToRemove)
 	for _, combination := range combinations {
 		graphCopy := copyGraph(graph)
 		for _, c := range combination {
 			graphCopy = removeLink(graphCopy, parseKey(c))
 		}
-		group1, group2 := findGroupSizes(graphCopy, "bvb")
+		group1, group2 := findGroupSizes(graphCopy, parseKey(combination[0])[0], traversalCount)
 		if group1 != 0 && group2 != 0 {
-			fmt.Printf("\nGraph: %v\n\n", graph)
-			fmt.Printf("Graph: %v\n", graphCopy)
-			fmt.Printf("Group 1: %d, Group 2: %d\n", group1, group2)
 			fmt.Printf("Combination: %v\n", combination)
+			fmt.Printf("Group 1: %d, Group 2: %d\n", group1, group2)
 			return group1 * group2
 		}
 	}
+	return -1
+}
 
-	return 0
+func getTwoRandomNodes(graph map[string][]string) (string, string){
+	node1, node2 := "", ""
+	for key := range graph {
+		node1 = key
+		break
+	}	
+	for key := range graph {
+		if key != node1 {
+			node2 = key
+			break
+		}
+	}
+	return node1, node2
+}
+
+func solvePart2(input []string) string {
+	return "Merry Christmas! 50*"
 }
 
 func removeLink(graph map[string][]string, link []string) map[string][]string {
@@ -56,16 +102,17 @@ func removeLink(graph map[string][]string, link []string) map[string][]string {
 	return graphCopy
 }
 
+const separator = "/"
 func parseKey(key string) []string {
-	parts := strings.Fields(key)
+	parts := strings.Split(key, separator)
 	return []string{ parts[0], parts[1]}
 }
 
 func getKey(component1, component2 string) string {
 	if component1 < component2 {
-		return fmt.Sprintf("%s %s", component1, component2)
+		return fmt.Sprintf("%s%s%s", component1, separator, component2)
 	}
-	return fmt.Sprintf("%s %s", component2, component1)
+	return fmt.Sprintf("%s%s%s", component2, separator, component1)
 }
 
 func copyGraph(graph map[string][]string) map[string][]string {
@@ -74,14 +121,6 @@ func copyGraph(graph map[string][]string) map[string][]string {
 		newGraph[key] = append([]string{}, values...)
 	}
 	return newGraph
-}
-
-func solvePart2(input []string) int {
-	result := 0
-
-
-
-	return result
 }
 
 func parseInput(input []string) (map[string][]string, string) {
@@ -115,7 +154,7 @@ func parseComponent(line string) (string, []string) {
 	return parts[0][:len(parts[0])-1], parts[1:]
 }
 
-func dijkstra(graph map[string][]string, source string) map[string]int {
+func findGroupSizes(graph map[string][]string, source string, traversalCount map[string]int) (int, int) {
 	dist := map[string]int{}
 	queue := make(priorityqueue.PriorityQueue, 0)
 	for key, values := range graph {
@@ -146,6 +185,8 @@ func dijkstra(graph map[string][]string, source string) map[string]int {
 			if queue.Has(v) {
 				alt := dist[u.Value] + 1
 				if alt < dist[v] {
+					key := getKey(u.Value, v)
+					traversalCount[key]++
 					dist[v] = alt
 					queue.Update(v, alt)
 				}
@@ -153,15 +194,9 @@ func dijkstra(graph map[string][]string, source string) map[string]int {
 		}
 	}
 
-	return dist
-}
-
-func findGroupSizes(graph map[string][]string, source string) (int, int) {
-	dist := dijkstra(graph, source)
-
 	group1, group2 := 0, 0
 	for _, v := range dist {
-		if v == math.MaxInt || v == math.MinInt {
+		if v == math.MaxInt || v < 0 {
 			group2++
 		} else {
 			group1++
@@ -170,8 +205,3 @@ func findGroupSizes(graph map[string][]string, source string) (int, int) {
 
 	return group1, group2
 }
-
-func findShortestPath(graph map[string][]string, source, dest string) int {
-	dist := dijkstra(graph, source)
-	return dist[dest]
-}	
