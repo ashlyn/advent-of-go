@@ -5,8 +5,17 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 )
+
+func ParseIntsFromStrings(slice []string) []int {
+	ints := make([]int, len(slice))
+	for i, str := range slice {
+		ints[i], _ = strconv.Atoi(str)
+	}
+	return ints
+}
 
 func Unpack(slice []string, vars ...*string) {
 	for i, str := range slice {
@@ -164,6 +173,46 @@ func GeneratePermutations(items []int) [][]int {
 	return permutations
 }
 
+func GenerateCombinationsLengthNChannel(items []int, n int, abort <-chan []int) <-chan []int {
+	c := make(chan []int)
+	go func() {
+		defer close(c)
+		length := len(items)
+		itemsCopy := make([]int, length)
+		copy(itemsCopy, items)
+
+		select {
+		case <-abort:
+			return
+		default:
+			if length == 0 || n > length || n == 0 {
+				c <- []int{}
+				return
+			} else if n == length {
+				initial := make([]int, length)
+				copy(initial, itemsCopy)
+				c <- initial
+				return
+			}
+	
+			if n == length {
+				for _, element := range itemsCopy {
+					c <- []int{element}
+				}
+			}
+	
+			first := itemsCopy[0]
+			for combo := range GenerateCombinationsLengthNChannel(itemsCopy[1:], n-1, abort) {
+				c <- append([]int{first}, combo...)
+			}
+			for combo := range GenerateCombinationsLengthNChannel(itemsCopy[1:], n, abort) {
+				c <- combo
+			}
+		}
+	}()
+	return c
+}
+
 func GenerateCombinationsLengthN(items []int, n int) [][]int {
 	length := len(items)
 	itemsCopy := make([]int, length)
@@ -191,6 +240,35 @@ func GenerateCombinationsLengthN(items []int, n int) [][]int {
 		nMinusOneCombinations[i] = append([]int{first}, nMinusOneCombinations[i]...)
 	}
 	return append(nMinusOneCombinations, GenerateCombinationsLengthN(itemsCopy[1:], n)...)
+}
+
+func GenerateCombinationsLengthNGeneric[T comparable](items []T, n int) [][]T {
+	length := len(items)
+	itemsCopy := make([]T, length)
+	copy(itemsCopy, items)
+
+	if length == 0 || n > length || n == 0 {
+		return [][]T{{}}
+	} else if n == length {
+		initial := make([]T, length)
+		copy(initial, itemsCopy)
+		return [][]T{initial}
+	}
+
+	if n == length {
+		combinations := [][]T{}
+		for _, element := range itemsCopy {
+			combinations = append(combinations, []T{element})
+			return combinations
+		}
+	}
+
+	first := itemsCopy[0]
+	nMinusOneCombinations := GenerateCombinationsLengthNGeneric(itemsCopy[1:], n-1)
+	for i := range nMinusOneCombinations {
+		nMinusOneCombinations[i] = append([]T{first}, nMinusOneCombinations[i]...)
+	}
+	return append(nMinusOneCombinations, GenerateCombinationsLengthNGeneric(itemsCopy[1:], n)...)
 }
 
 func GenerateAllCombinations(items []int) [][]int {

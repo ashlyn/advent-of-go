@@ -60,18 +60,20 @@ func parseLine(line string) Bag {
 
 func searchForParentsOf(children []Bag, bags []Bag) []Bag {
 	parents := make([]Bag, 0)
-	childColors = children.map { $0.color }
+	// childColors = children.map { $0.color }
 	for i := range bags {
 		matchingChildren := false
 		j := 0
-		while j < len(bags[i].contents) && !matchingChildren {
+		for j < len(bags[i].contents) && !matchingChildren {
 			j++
 		}
 		if matchingChildren {
 			parents = append(parents, bags[i])
 		}
 	}
-	if len(parents) == 0 return []
+	if len(parents) == 0 {
+		return []Bag{}
+	}
 	return append(parents, searchForParentsOf(parents, bags))
 }
 

@@ -42,6 +42,12 @@ func (set *Set) Remove(element string) {
 	}
 }
 
+func (set *Set) RemoveSet(setToRemove Set) {
+	for element := range setToRemove.elements {
+		set.Remove(element)
+	}
+}
+
 func (set *Set) Wipe() {
 	set.elements = make(map[string]types.Nil)
 }
@@ -96,6 +102,20 @@ func (set *Set) Intersect(setToIntersectWith Set) Set {
 		if set.Has(element) && setToIntersectWith.Has(element) {
 			resultSet.Add(element)
 		}
+	}
+
+	return resultSet
+}
+
+func (set *Set) Union(setToUnionWith Set) Set {
+	resultSet := New()
+
+	for element := range set.elements {
+		resultSet.Add(element)
+	}
+
+	for element := range setToUnionWith.elements {
+		resultSet.Add(element)
 	}
 
 	return resultSet

@@ -92,6 +92,15 @@ func PrimeFactors(n int) map[int]int {
 	return primes
 }
 
+// PrimeFactorsSlice returns a slice of prime factors of n
+func PrimeFactorsSlice(n int) []int {
+	factors := []int{}
+	for factor := range PrimeFactors(n) {
+		factors = append(factors, factor)
+	}
+	return factors
+}
+
 // SumOfDivisors calculates the sum of all divisors of a number n
 func SumOfDivisors(n int) int {
 	factors := PrimeFactors(n)
@@ -130,4 +139,25 @@ func DegreesToRadians(degrees float64) float64 {
 // RadiansToDegrees converts an angle in raidans to degrees
 func RadiansToDegrees(radians float64) float64 {
 	return radians * (180 / math.Pi)
+}
+
+// CalculatePolynomial returns the result of a polynomial function with a given x value
+// Coefficients should be sorted from highest to lowest power
+// e.g. 2x^2 + 3x + 1 would be [2, 3, 1]
+func CalculatePolynomial(coefficients []float64, x float64) float64 {
+	var sum float64
+	for i, coefficient := range coefficients {
+		sum += coefficient * math.Pow(x, float64(len(coefficients)-i-1))
+	}
+	return sum
+}
+
+// FindLagrangeCoefficients returns the coefficients for a polynomial function
+// fitting the given y values at x=0, x=1, and x=2
+func FindLagrangeCoefficients(y0, y1, y2 float64) []float64 {
+	return []float64{
+		y0 / 2 - y1 + y2 / 2,
+		-3 * (y0 / 2) + 2 * y1 - y2 / 2,
+		y0,
+	}
 }
