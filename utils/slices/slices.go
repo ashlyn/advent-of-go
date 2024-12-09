@@ -309,3 +309,13 @@ func Reverse[T comparable](input []T) []T {
 
 	return reversed
 }
+
+// TrimRight removes all trailing elements from the slice that are equal to the trimValue
+func TrimRight[T comparable](input []T, trimValue T) []T {
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i] != trimValue {
+			return input[:i+1]
+		}
+	}
+	return input
+}
