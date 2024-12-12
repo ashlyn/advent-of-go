@@ -5,12 +5,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
 	input := files.ReadFile(11, 2024, "\n")
+	sw := time.Now()
 	println(solvePart1(input))
+	fmt.Printf("Solved part 1 in %v\n", time.Since(sw))
+	sw = time.Now()
 	println(solvePart2(input))
+	fmt.Printf("Solved part 2 in %v\n", time.Since(sw))
 }
 
 func solvePart1(input []string) int {
