@@ -3,7 +3,6 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/grid"
-	"advent-of-go/utils/sets"
 	"sort"
 	"strings"
 )
@@ -15,17 +14,15 @@ func main() {
 }
 
 func solvePart1(input []string) string {
-	tracks, carts, cartPositions := prepareTracks(input)
-	crash := simulateUntilCrash(tracks, carts, cartPositions)
+	tracks, carts := prepareTracks(input)
+	crash := simulate(tracks, carts, false)
 	return crash.ToString()
 }
 
-func solvePart2(input []string) int {
-	result := 0
-
-
-
-	return result
+func solvePart2(input []string) string {
+	tracks, carts := prepareTracks(input)
+	crash := simulate(tracks, carts, true)
+	return crash.ToString()
 }
 
 type turn int
@@ -35,14 +32,15 @@ const (
 	right turn = iota
 )
 type cart struct {
+	id int
 	position grid.Coords
 	direction grid.Coords
 	nextTurn turn
+	active bool
 }
-func prepareTracks(input []string) ([]string, []cart, *sets.Set) {
+func prepareTracks(input []string) ([]string, []cart) {
 	tracks := make([]string, len(input))
 	carts := []cart{}
-	cartPositions := sets.New()
 
 	for y := 0; y < len(input); y++ {
 		sb := strings.Builder{}
@@ -52,27 +50,23 @@ func prepareTracks(input []string) ([]string, []cart, *sets.Set) {
 			switch current {
 			case '^':
 				sb.WriteString("|")
-				carts = append(carts, cart{position, grid.Coords{X: 0, Y: -1}, left})
-				cartPositions.Add(position.ToString())
+				carts = append(carts, cart{position: position, direction: grid.Coords{X: 0, Y: -1}, nextTurn: left, id: len(carts), active: true})
 			case 'v':
 				sb.WriteString("|")
-				carts = append(carts, cart{position, grid.Coords{X: 0, Y: 1}, left})
-				cartPositions.Add(position.ToString())
+				carts = append(carts, cart{position: position, direction: grid.Coords{X: 0, Y: 1}, nextTurn: left, id: len(carts), active: true})
 			case '<':
 				sb.WriteString("-")
-				carts = append(carts, cart{position, grid.Coords{X: -1, Y: 0}, left})
-				cartPositions.Add(position.ToString())
+				carts = append(carts, cart{position: position, direction: grid.Coords{X: -1, Y: 0}, nextTurn: left, id: len(carts), active: true})
 			case '>':
 				sb.WriteString("-")
-				carts = append(carts, cart{position, grid.Coords{X: 1, Y: 0}, left})
-				cartPositions.Add(position.ToString())
+				carts = append(carts, cart{position: position, direction: grid.Coords{X: 1, Y: 0}, nextTurn: left, id: len(carts), active: true})
 			default:
 				sb.WriteByte(current)
 			}
 		}
 		tracks[y] = sb.String()
 	}
-	return tracks, carts, &cartPositions
+	return tracks, carts
 }
 
 func (c *cart) move(tracks []string) {
@@ -142,8 +136,12 @@ func makeTurn(currentDirection grid.Coords, turnDirection turn) grid.Coords {
 	return currentDirection
 }
 
-func simulateUntilCrash(tracks []string, carts []cart, cartPositions *sets.Set) grid.Coords {
+func simulate(tracks []string, carts []cart, removeCrashes bool) grid.Coords {
 	for {
+		carts = filterInactiveCards(carts)
+		if len(carts) == 1 {
+			return carts[0].position
+		}
 		sort.Slice(carts, func(i, j int) bool {
 			if carts[i].position.Y == carts[j].position.Y {
 				return carts[i].position.X < carts[j].position.X
@@ -151,13 +149,39 @@ func simulateUntilCrash(tracks []string, carts []cart, cartPositions *sets.Set) 
 			return carts[i].position.Y < carts[j].position.Y
 		})
 		for i := 0; i < len(carts); i++ {
+			if !carts[i].active {
+				continue
+			}
 			c := &carts[i]
-			cartPositions.Remove(c.position.ToString())
 			c.move(tracks)
-			if cartPositions.Has(c.position.ToString()) {
+			collisionIndex := c.collisionIndex(carts)
+			if collisionIndex != -1 && !removeCrashes {
 				return c.position
 			}
-			cartPositions.Add(c.position.ToString())
+			if collisionIndex != -1 && removeCrashes {
+				c.active = false
+				collidedWith := &carts[collisionIndex]
+				collidedWith.active = false
+			}
 		}
 	}
+}
+
+func filterInactiveCards(carts []cart) []cart {
+	activeCarts := []cart{}
+	for _, c := range carts {
+		if c.active {
+			activeCarts = append(activeCarts, c)
+		}
+	}
+	return activeCarts
+}
+
+func (c *cart) collisionIndex(carts []cart) int {
+	for i, cart := range carts {
+		if cart.position == c.position && cart.id != c.id {
+			return i
+		}
+	}
+	return -1
 }
