@@ -5,6 +5,7 @@ import (
 	"advent-of-go/utils/grid"
 	"advent-of-go/utils/maths"
 	"advent-of-go/utils/priorityqueue"
+	"advent-of-go/utils/sets"
 	"advent-of-go/utils/slices"
 	"container/heap"
 	"fmt"
@@ -19,19 +20,13 @@ func main() {
 }
 
 func solvePart1(input []string) int {
-	result := 0
-	return dijkstraPiroityQueue(input)
-
-
-	return result
+	score, _ := dijkstraPiroityQueue(input)
+	return score
 }
 
 func solvePart2(input []string) int {
-	result := 0
-
-
-
-	return result
+	_, placesToSit := dijkstraPiroityQueue(input)
+	return placesToSit
 }
 
 var directions = []grid.Coords{{X: 0, Y: 1}, {X: 1, Y: 0}, {X: 0, Y: -1}, {X: -1, Y: 0}}
@@ -39,13 +34,15 @@ type reindeerState struct {
 	position grid.Coords
 	direction grid.Coords
 }
-func dijkstraPiroityQueue(maze []string) int {
-	distances := map[reindeerState]int{}
+func dijkstraPiroityQueue(maze []string) (int, int) {
+	scores, previous := map[reindeerState]int{}, map[reindeerState][]reindeerState{}
 
 	start, end := parseMaze(maze)
 
 	initialState := reindeerState{position: start, direction: grid.Coords{X: 1, Y: 0}}
-	distances[initialState] = 0
+	scores[initialState] = 0
+	initialPath := sets.New()
+	initialPath.Add(initialState.position.ToString())
 	
 	q := make(priorityqueue.PriorityQueue, 0)
 	for y := 0; y < len(maze); y++ {
@@ -58,9 +55,9 @@ func dijkstraPiroityQueue(maze []string) int {
 					}
 					state := reindeerState{position: position, direction: direction}
 					if position != start {
-						distances[state] = math.MaxInt
+						scores[state] = math.MaxInt
 					}
-					heap.Push(&q, &priorityqueue.Item{Priority: distances[state], Value: state.toString()})
+					heap.Push(&q, &priorityqueue.Item{Priority: scores[state], Value: state.toString()})
 				}
 			}
 		}
@@ -71,10 +68,14 @@ func dijkstraPiroityQueue(maze []string) int {
 		state := parseState(item.Value)
 		neighbors := getNeighbors(maze, state)
 		for _, neighbor := range neighbors {
-			alt := distances[state] + getCost(state, neighbor)
-			if alt < distances[neighbor] && alt > 0 {
-				distances[neighbor] = alt
-				q.Update(neighbor.toString(), alt)
+			altScore := scores[state] + getScoreForMove(state, neighbor)
+			if altScore <= scores[neighbor] && altScore > 0 {
+				scores[neighbor] = altScore
+				q.Update(neighbor.toString(), altScore)
+				if _, ok := previous[neighbor]; !ok {
+					previous[neighbor] = []reindeerState{}
+				}
+				previous[neighbor] = append(previous[neighbor], state)
 			}
 		}
 	}
@@ -82,11 +83,30 @@ func dijkstraPiroityQueue(maze []string) int {
 	minScore := math.MaxInt
 	for _, direction := range directions {
 		state := reindeerState{position: end, direction: direction}
-		if distances[state] < minScore {
-			minScore = distances[state]
+		if scores[state] < minScore {
+			minScore = scores[state]
 		}
 	}
-	return minScore
+	
+	placesToSit := sets.New()
+	for _, direction := range directions {
+		state := reindeerState{position: end, direction: direction}
+		if scores[state] == minScore {
+			queue := sets.New()
+			queue.Add(state.toString())
+			for queue.Size() > 0 {
+				current := parseState(queue.Random())
+				queue.Remove(current.toString())
+				placesToSit.Add(current.position.ToString())
+				for _, p := range previous[current] {
+					if !queue.Has(p.toString()) {
+						queue.Add(p.toString())
+					}
+				}
+			}
+		}
+	}
+	return minScore, placesToSit.Size()
 }
 
 func parseMaze(input []string) (grid.Coords, grid.Coords) {
@@ -115,7 +135,7 @@ func parseState(input string) reindeerState {
 	return reindeerState{position: position, direction: direction}
 }
 
-func getCost(from reindeerState, to reindeerState) int {
+func getScoreForMove(from reindeerState, to reindeerState) int {
 	if from.direction == to.direction {
 		return 1
 	}
