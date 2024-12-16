@@ -60,7 +60,7 @@ func buildBoxes(steps []string) ([][]string, map[string]int) {
 			parts := strings.Split(s, "-")
 			label := parts[0]
 			boxNumber := hash(label)
-			lensIndex := slices.IndexOf(label, boxes[boxNumber])
+			lensIndex := slices.IndexOfStr(label, boxes[boxNumber])
 			if lensIndex != -1 {
 				boxes[boxNumber] = append(boxes[boxNumber][:lensIndex], boxes[boxNumber][lensIndex+1:]...)
 			}

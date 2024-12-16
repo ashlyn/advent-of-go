@@ -96,7 +96,7 @@ func solvePart2(input []string) string {
 func removeLink(graph map[string][]string, link []string) map[string][]string {
 	component1, component2 := link[0], link[1]
 	graphCopy := copyGraph(graph)
-	i, j := slices.IndexOf(component1, graphCopy[component2]), slices.IndexOf(component2, graphCopy[component1])
+	i, j := slices.IndexOfStr(component1, graphCopy[component2]), slices.IndexOfStr(component2, graphCopy[component1])
 	graphCopy[component2] = append(graphCopy[component2][:i], graphCopy[component2][i+1:]...)
 	graphCopy[component1] = append(graphCopy[component1][:j], graphCopy[component1][j+1:]...)
 	return graphCopy

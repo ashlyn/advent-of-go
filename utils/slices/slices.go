@@ -280,7 +280,17 @@ func GenerateAllCombinations(items []int) [][]int {
 }
 
 // IndexOf returns the index of the selected item or -1 if not present
-func IndexOf(item string, slice []string) int {
+func IndexOf[T comparable](item T, slice []T) int {
+	for i := range slice {
+		if slice[i] == item {
+			return i
+		}
+	}
+	return -1
+}
+
+// IndexOfStr returns the index of the selected item or -1 if not present
+func IndexOfStr(item string, slice []string) int {
 	for i := range slice {
 		if slice[i] == item {
 			return i
