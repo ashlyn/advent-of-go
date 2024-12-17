@@ -6,6 +6,41 @@ import (
 	"strings"
 )
 
+type recipes struct {
+	scores []byte
+}
+
+func (r *recipes) Generate(i, j int) (int, int) {
+	d1, d2 := int(r.scores[i]-'0'), int(r.scores[j]-'0')
+	r.add(d1 + d2)
+	return (i + d1 + 1) % len(r.scores), (j + d2 + 1) % len(r.scores)
+}
+
+func (r *recipes) String() string {
+	return string(r.scores)
+}
+
+func (r *recipes) Len() int {
+	return len(r.scores)
+}
+
+func (r * recipes) Last(n int) []byte {
+	return r.scores[len(r.scores)-n:]
+}
+
+func newRecipes(input []int) recipes {
+	r := recipes{scores: []byte{}}
+	for _, digit := range input {
+		r.add(digit)
+	}
+	return r
+}
+
+func (r *recipes) add(score int) {
+	s := []byte(strconv.Itoa(score))
+	r.scores = append(r.scores, s...)
+}
+
 func main() {
 	input := files.ReadFile(14, 2018, "\n")
 	println(solvePart1(input))
@@ -15,48 +50,22 @@ func main() {
 func solvePart1(input []string) string {
 	target, _ := strconv.Atoi(input[0])
 	rounds := 10
-	recipes := []int{3, 7}
+	recipes := newRecipes([]int{3, 7})
 	elf1, elf2 := 0, 1
-	for len(recipes) < target+rounds {
-		elf1, elf2, recipes = generateRecipes(elf1, elf2, recipes)
+	for recipes.Len() < target+rounds {
+		elf1, elf2 = recipes.Generate(elf1, elf2)
 	}
-	return recipesToString(recipes[target : target+rounds])
+	return recipes.String()[target:target+rounds]
 }
 
 func solvePart2(input []string) int {
-	target := input[0]
-	recipes := []int{3, 7}
+	target  := input[0]
+	recipes := newRecipes([]int{3, 7})
 	elf1, elf2 := 0, 1
-	i := 0
-	for i < 100000000 {
-		elf1, elf2, recipes = generateRecipes(elf1, elf2, recipes)
-		targetIndex := strings.Index(recipesToString(recipes), target)
-		if targetIndex != -1 {
-			return targetIndex
-		}
-		if (i % 10000) == 0 {
-			println(i, len(recipes))
-		}
-		i++
+	for i := 0; i < 40000000; i++ {
+		elf1, elf2 = recipes.Generate(elf1, elf2)
+		// wanted to have a stopping condition here and couldn't get it working as expected
+		// instead, cutting off at a "reasonable" number of iterations
 	}
-	return -1
-}
-
-func generateRecipes(elf1, elf2 int, recipes []int) (int, int, []int) {
-	digits := strconv.Itoa(recipes[elf1] + recipes[elf2])
-	for i := 0; i < len(digits); i++ {
-		r, _ := strconv.Atoi(digits[i:i+1])
-		recipes = append(recipes, r)
-	}
-	elf1 = (elf1 + recipes[elf1] + 1) % len(recipes)
-	elf2 = (elf2 + recipes[elf2] + 1) % len(recipes)
-	return elf1, elf2, recipes
-}
-
-func recipesToString(recipes []int) string {
-	sb := strings.Builder{}
-	for _, r := range recipes {
-		sb.WriteString(strconv.Itoa(r))
-	}
-	return sb.String()
+	return strings.Index(recipes.String(), target)
 }

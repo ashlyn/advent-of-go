@@ -15,7 +15,6 @@ func main() {
 	println(solvePart2(input))
 }
 
-// 8086 too high
 func solvePart1(input []string) int {
 	size := grid.Coords{ X: 11, Y: 7}
 	if len(input) > 12 {

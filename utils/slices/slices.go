@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+func IntsToStrings(slice []int) []string {
+	strings := make([]string, len(slice))
+	for i, num := range slice {
+		strings[i] = strconv.Itoa(num)
+	}
+	return strings
+}
+
 func ParseIntsFromStrings(slice []string) []int {
 	ints := make([]int, len(slice))
 	for i, str := range slice {
@@ -101,7 +109,11 @@ func Frame(slice []string) []string {
 	return framed
 }
 
-func Equals(first []string, second []string) bool {
+func Equals[T comparable](first []T, second []T) bool {
+	if len(first) != len(second) {
+		return false
+	}
+
 	for i := 0; i < len(first); i++ {
 		if first[i] != second[i] {
 			return false
@@ -328,4 +340,17 @@ func TrimRight[T comparable](input []T, trimValue T) []T {
 		}
 	}
 	return input
+}
+
+// IndexOfSubset returns the index of the subset in the slice or -1 if not present
+func IndexOfSubset[T comparable](slice []T, subset []T) int {
+	if len(slice) < len(subset) {
+		return -1
+	}
+	for i := 0; i < len(slice)-len(subset)+1; i++ {
+		if Equals(slice[i:i+len(subset)], subset) {
+			return i
+		}
+	}
+	return -1
 }
