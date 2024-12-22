@@ -42,6 +42,7 @@ func solvePart2(input []string) int {
 		}
 	}
 
+	// quite possibly is not checking the very first or last sequences possible
 	for i := 0; i < len(secrets); i++ {
 		secretsChain := secrets[i]
 		for j := 5; j < len(secretsChain); j++ {

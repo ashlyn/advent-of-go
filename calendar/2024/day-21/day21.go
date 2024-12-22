@@ -3,12 +3,15 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"fmt"
+	"math"
 	"strconv"
+	"strings"
 )
 
 func main() {
 	input := files.ReadFile(21, 2024, "\n")
 	println(solvePart1(input))
+	println()
 	println(solvePart2(input))
 }
 
@@ -17,32 +20,46 @@ func solvePart1(input []string) int {
 	robots := 3
 	for _, line := range input {
 		code := line
-		println(line)
 		for i := 0; i < robots; i++ {
 			code = abstract("A" + code)
-			println(code)
+			// println(code)
 		}
-		fmt.Printf("%d * %d\n", len(code), getNumericComponent(line))
-		println()
-		result += getNumericComponent(line) * len(code)
+		length, numeric := len(code), getNumericComponent(line)
+		fmt.Printf("%s: %d * %d\n", line, length, numeric)
+		result += length * numeric
 	}
 
 	return result
 }
 
+// 108790909750248 too low
+//    897690107904 too low
+// off by 13704 with r = 3 (6 per code)
+// idek anymore
 func solvePart2(input []string) int {
 	result := 0
+	robots := 24 // 2
+	cache := make(map[string][]int)
+	for _, line := range input {
+		length := abstractMemoized(abstract("A" + line), robots, 0, cache)
+		numeric := getNumericComponent(line)
+		fmt.Printf("%s: %d * %d\n", line, length, numeric)
+		if (result + (length - 1) * numeric) < result {
+			panic("overflow")
+		}
+		result += (length - 1) * numeric
+	}
 
-
-
+	println(math.MaxInt)
 	return result
 }
 
 func getNumericComponent(input string) int {
-	value, _ := strconv.Atoi(input[:len(input)-1])
+	value, _ := strconv.Atoi(strings.ReplaceAll(input, "A", ""))
 	return value
 }
 
+// All the optimized moves
 var moveMap = map[string]string {
 	"A0": "<",
 	"A1": "^<<",
@@ -190,20 +207,50 @@ var moveMap = map[string]string {
 	"<v": ">",
 	"<>": ">>",
 }
-func abstract(code string) string {
-	result := ""
 
+func translateMove(from string, to string) string {
+	return moveMap[from + to] + "A"
+}
+func abstract(code string) string {
+	sb := strings.Builder{}
 	for i := 0; i < len(code) - 1; i++ {
-		if code[i] == code[i+1] {
-			result += "A"
-			continue
+		sb.WriteString(translateMove(code[i:i+1], code[i+1:i+2]))
+		// sb.WriteString(moveMap[code[i:i+2]])
+		// sb.WriteByte('A')
+	}
+	return sb.String()
+}
+
+func abstractMemoized(code string, totalRobots, currentRobot int, cache map[string][]int) int {
+	if cached, ok := cache[code]; ok {
+		if cached[currentRobot] != 0 {
+			return cached[currentRobot]
 		}
-		_, ok := moveMap[code[i:i+2]]
-		if !ok {
-			println("Not found ", code[i:i+2])
-		}
-		result += moveMap[code[i:i+2]] + "A"
+	} else {
+		cache[code] = make([]int, totalRobots)
 	}
 
-	return result
+	nextCode := abstract("A" + code)
+	cache[code][0] = len(nextCode)
+
+	if currentRobot == totalRobots - 1 {
+		return len(nextCode)
+	}
+
+	length := 0
+
+	steps := strings.Split(nextCode, "A")
+	for i := 0; i < len(steps); i++ {
+		s := steps[i] + "A"
+		nextLength := abstractMemoized(s, totalRobots, currentRobot + 1, cache)
+		if _, ok := cache[s]; !ok {
+			cache[s] = make([]int, totalRobots)
+		}
+		cache[code][0] = nextLength
+		length += nextLength
+	}
+
+	cache[code][currentRobot] = length
+
+	return length
 }
