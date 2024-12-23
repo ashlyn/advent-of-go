@@ -225,23 +225,23 @@ func GenerateCombinationsLengthNChannel(items []int, n int, abort <-chan []int) 
 	return c
 }
 
-func GenerateCombinationsLengthN(items []int, n int) [][]int {
+func GenerateCombinationsLengthN[T comparable](items []T, n int) [][]T {
 	length := len(items)
-	itemsCopy := make([]int, length)
+	itemsCopy := make([]T, length)
 	copy(itemsCopy, items)
 
 	if length == 0 || n > length || n == 0 {
-		return [][]int{{}}
+		return [][]T{{}}
 	} else if n == length {
-		initial := make([]int, length)
+		initial := make([]T, length)
 		copy(initial, itemsCopy)
-		return [][]int{initial}
+		return [][]T{initial}
 	}
 
 	if n == length {
-		combinations := [][]int{}
+		combinations := [][]T{}
 		for _, element := range itemsCopy {
-			combinations = append(combinations, []int{element})
+			combinations = append(combinations, []T{element})
 			return combinations
 		}
 	}
@@ -249,7 +249,7 @@ func GenerateCombinationsLengthN(items []int, n int) [][]int {
 	first := itemsCopy[0]
 	nMinusOneCombinations := GenerateCombinationsLengthN(itemsCopy[1:], n-1)
 	for i := range nMinusOneCombinations {
-		nMinusOneCombinations[i] = append([]int{first}, nMinusOneCombinations[i]...)
+		nMinusOneCombinations[i] = append([]T{first}, nMinusOneCombinations[i]...)
 	}
 	return append(nMinusOneCombinations, GenerateCombinationsLengthN(itemsCopy[1:], n)...)
 }

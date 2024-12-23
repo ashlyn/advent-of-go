@@ -34,10 +34,10 @@ func solvePart2(input []string) int {
 	result := 0
 	robots := 25
 
+	cache := make(map[cachedMove]int)
 	for _, line := range input {
-		cache := make(map[cachedSequence]int)
 		firstDirectional := abstract("A" + line)
-		length := shortestSequence(firstDirectional, robots, cache)
+		length := shortestMoves(firstDirectional, robots, cache)
 		numeric := getNumericComponent(line)
 		fmt.Printf("%s: %d * %d\n", line, length, numeric)
 		result += length * numeric
@@ -209,17 +209,17 @@ func abstract(code string) string {
 	return sb.String()
 }
 
-type cachedSequence struct {
-	sequence string
+type cachedMove struct {
+	move string
 	depth int
 }
-func shortestSequence(moves string, depth int, cache map[cachedSequence]int) int {
+func shortestMoves(moves string, depth int, cache map[cachedMove]int) int {
 	if depth == 0 {
-		cache[cachedSequence{moves, depth}] = len(moves)
+		cache[cachedMove{moves, depth}] = len(moves)
 		return len(moves)
 	}
 
-	if cached, ok := cache[cachedSequence{moves, depth}]; ok {
+	if cached, ok := cache[cachedMove{moves, depth}]; ok {
 		return cached
 	}
 
@@ -229,8 +229,8 @@ func shortestSequence(moves string, depth int, cache map[cachedSequence]int) int
 	for i := 0; i < len(presses); i++ {
 		move := presses[i] + "A"
 		nextMove := abstract("A" + move)
-		length += shortestSequence(nextMove, depth - 1, cache)
+		length += shortestMoves(nextMove, depth - 1, cache)
 	}
-	cache[cachedSequence{moves, depth}] = length
+	cache[cachedMove{moves, depth}] = length
 	return length
 }
