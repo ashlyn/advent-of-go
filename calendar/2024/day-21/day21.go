@@ -3,7 +3,6 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -22,7 +21,6 @@ func solvePart1(input []string) int {
 		code := line
 		for i := 0; i < robots; i++ {
 			code = abstract("A" + code)
-			// println(code)
 		}
 		length, numeric := len(code), getNumericComponent(line)
 		fmt.Printf("%s: %d * %d\n", line, length, numeric)
@@ -32,25 +30,18 @@ func solvePart1(input []string) int {
 	return result
 }
 
-// 108790909750248 too low
-//    897690107904 too low
-// off by 13704 with r = 3 (6 per code)
-// idek anymore
 func solvePart2(input []string) int {
 	result := 0
-	robots := 24 // 2
-	cache := make(map[string][]int)
+	robots := 25
+
 	for _, line := range input {
-		length := abstractMemoized(abstract("A" + line), robots, 0, cache)
+		cache := make(map[cachedSequence]int)
+		firstDirectional := abstract("A" + line)
+		length := shortestSequence(firstDirectional, robots, cache)
 		numeric := getNumericComponent(line)
 		fmt.Printf("%s: %d * %d\n", line, length, numeric)
-		if (result + (length - 1) * numeric) < result {
-			panic("overflow")
-		}
-		result += (length - 1) * numeric
+		result += length * numeric
 	}
-
-	println(math.MaxInt)
 	return result
 }
 
@@ -59,7 +50,8 @@ func getNumericComponent(input string) int {
 	return value
 }
 
-// All the optimized moves
+// All the optimized moves, pre-calculated by hand
+// Prefers left to vertical to right
 var moveMap = map[string]string {
 	"A0": "<",
 	"A1": "^<<",
@@ -208,49 +200,37 @@ var moveMap = map[string]string {
 	"<>": ">>",
 }
 
-func translateMove(from string, to string) string {
-	return moveMap[from + to] + "A"
-}
 func abstract(code string) string {
 	sb := strings.Builder{}
 	for i := 0; i < len(code) - 1; i++ {
-		sb.WriteString(translateMove(code[i:i+1], code[i+1:i+2]))
-		// sb.WriteString(moveMap[code[i:i+2]])
-		// sb.WriteByte('A')
+		sb.WriteString(moveMap[code[i:i+2]])
+		sb.WriteByte('A')
 	}
 	return sb.String()
 }
 
-func abstractMemoized(code string, totalRobots, currentRobot int, cache map[string][]int) int {
-	if cached, ok := cache[code]; ok {
-		if cached[currentRobot] != 0 {
-			return cached[currentRobot]
-		}
-	} else {
-		cache[code] = make([]int, totalRobots)
+type cachedSequence struct {
+	sequence string
+	depth int
+}
+func shortestSequence(moves string, depth int, cache map[cachedSequence]int) int {
+	if depth == 0 {
+		cache[cachedSequence{moves, depth}] = len(moves)
+		return len(moves)
 	}
 
-	nextCode := abstract("A" + code)
-	cache[code][0] = len(nextCode)
-
-	if currentRobot == totalRobots - 1 {
-		return len(nextCode)
+	if cached, ok := cache[cachedSequence{moves, depth}]; ok {
+		return cached
 	}
 
-	length := 0
-
-	steps := strings.Split(nextCode, "A")
-	for i := 0; i < len(steps); i++ {
-		s := steps[i] + "A"
-		nextLength := abstractMemoized(s, totalRobots, currentRobot + 1, cache)
-		if _, ok := cache[s]; !ok {
-			cache[s] = make([]int, totalRobots)
-		}
-		cache[code][0] = nextLength
-		length += nextLength
+	// length starts at -1 because the function will add 1 at each layer due to the implicit "A" start
+	length := -1
+	presses := strings.Split(moves, "A")
+	for i := 0; i < len(presses); i++ {
+		move := presses[i] + "A"
+		nextMove := abstract("A" + move)
+		length += shortestSequence(nextMove, depth - 1, cache)
 	}
-
-	cache[code][currentRobot] = length
-
+	cache[cachedSequence{moves, depth}] = length
 	return length
 }
