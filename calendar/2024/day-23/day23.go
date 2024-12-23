@@ -53,12 +53,38 @@ func solvePart1(input []string) int {
 	return len(tNetworks)
 }
 
-func solvePart2(input []string) int {
-	result := 0
-
-
-
-	return result
+func solvePart2(input []string) string {
+	matrix := parseAsMatrix(input)
+	adjacencyList := parseAsAdjacencyList(input)
+	degrees := map[int][]string{}
+	maxCliqueSize := 0
+	for n, connections := range adjacencyList {
+		n, degree := n, len(connections)
+		if degree > maxCliqueSize {
+			maxCliqueSize = degree
+		}
+		degrees[degree] = append(degrees[degree], n)
+	}
+	nodes := []string{}
+	for node := range matrix {
+		nodes = append(nodes, node)
+	}
+	for cliqueSize := maxCliqueSize; cliqueSize > 0; cliqueSize-- {
+		for _, parent := range degrees[maxCliqueSize] {
+			neighbors := adjacencyList[parent]
+			nodeSet := make([]string, cliqueSize)
+			copy(nodeSet, neighbors)
+			nodeSet = append(nodeSet, parent)
+			combinations := slices.GenerateCombinationsLengthN(nodeSet, cliqueSize + 1)
+			for _, c := range combinations {
+				if isClique(matrix, c) {
+					sort.Slice(c, func(i, j int) bool { return c[i] < c[j] })
+					return strings.Join(c, ",")
+				}
+			}	
+		}
+	}
+	return ""
 }
 
 func parseAsAdjacencyList(input []string) map[string][]string {
@@ -77,4 +103,34 @@ func parseAsAdjacencyList(input []string) map[string][]string {
 	}
 
 	return adjacencyList
+}
+
+func parseAsMatrix(input []string) map[string]map[string]int {
+	matrix := make(map[string]map[string]int)
+
+	for _, line := range input {
+		computers := strings.Split(line, "-")
+		if _, ok := matrix[computers[0]]; !ok {
+			matrix[computers[0]] = make(map[string]int)
+		}
+		matrix[computers[0]][computers[1]] = 1
+		if _, ok := matrix[computers[1]]; !ok {
+			matrix[computers[1]] = make(map[string]int)
+		}
+		matrix[computers[1]][computers[0]] = 1
+	}
+
+	return matrix
+}
+
+func isClique(matrix map[string]map[string]int, nodes []string) bool {
+	for i := 0; i < len(nodes); i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			if _, ok := matrix[nodes[i]][nodes[j]]; !ok {
+				return false
+			}
+		}
+	}
+
+	return true
 }
