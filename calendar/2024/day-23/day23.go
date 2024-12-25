@@ -69,6 +69,8 @@ func solvePart2(input []string) string {
 	for node := range matrix {
 		nodes = append(nodes, node)
 	}
+	// likely does not work for hub-and-spoke networks
+	// e.g. where a highly connected node's neighbors are not connected to each other
 	for cliqueSize := maxCliqueSize; cliqueSize > 0; cliqueSize-- {
 		for _, parent := range degrees[maxCliqueSize] {
 			neighbors := adjacencyList[parent]
