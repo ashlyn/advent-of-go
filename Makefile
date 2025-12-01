@@ -16,7 +16,7 @@ new:
 	@git add calendar/
 
 all:
-	number=1 ; while [ "$$number" -le 25 ] ; do \
+	number=1 ; while [ "$$number" -le 12 ] ; do \
 			$(MAKE) new day=$$number year=$$year ; \
 			number=$$(( $$number + 1)); \
 		done
