@@ -3,13 +3,12 @@ package files
 import (
 	"advent-of-go/utils/req"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 )
 
-// Reads content of the input file and returns it in an array, split by the specified delimiter
+// ReadFile Reads content of the input file and returns it in an array, split by the specified delimiter
 // If the input file does not exist, it will be created
 func ReadFile(day int, year int, delimiter string) []string {
 	currentDay := strconv.Itoa(day)
@@ -25,7 +24,7 @@ func ReadFile(day int, year int, delimiter string) []string {
 		fmt.Println("INFO: File already exists.. Will not create new one")
 	}
 
-	file, err := ioutil.ReadFile(filePath)
+	file, err := os.ReadFile(filePath)
 	if err != nil {
 		panic(err)
 	}
@@ -38,23 +37,23 @@ func ReadFile(day int, year int, delimiter string) []string {
 		// this is why the last row is just removed if the delimiter is a newline
 
 		return slicedContent[:len(slicedContent) - 1]
-	} else {
-		// if the delimiter is not a newline and we split on eg. a comma, the newline will be appended to the last
-		// element in the slice which then cannot be converted to an int.
-		// this is the reason the last element in the slice is modified (the last char is removed
-		// [which is the extra newline]) so it can be worked with
-
-		lastElement := slicedContent[len(slicedContent) - 1]
-		slicedContent[len(slicedContent) - 1] = lastElement[:len(lastElement) - 1]
-
-		return slicedContent
 	}
+
+	// if the delimiter is not a newline and we split on eg. a comma, the newline will be appended to the last
+	// element in the slice which then cannot be converted to an int.
+	// this is the reason the last element in the slice is modified (the last char is removed
+	// [which is the extra newline]) so it can be worked with
+
+	lastElement := slicedContent[len(slicedContent) - 1]
+	slicedContent[len(slicedContent) - 1] = lastElement[:len(lastElement) - 1]
+
+	return slicedContent
 }
 
 func createFile(day int, year int, filePath string) {
 	puzzleInput := req.MakeRequest(day, year)
 
-	err := ioutil.WriteFile(filePath, []byte(puzzleInput), 0755)
+	err := os.WriteFile(filePath, []byte(puzzleInput), 0755)
 
 	if err != nil {
 		panic(err)

@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+func IntsToStrings(slice []int) []string {
+	strings := make([]string, len(slice))
+	for i, num := range slice {
+		strings[i] = strconv.Itoa(num)
+	}
+	return strings
+}
+
 func ParseIntsFromStrings(slice []string) []int {
 	ints := make([]int, len(slice))
 	for i, str := range slice {
@@ -101,7 +109,11 @@ func Frame(slice []string) []string {
 	return framed
 }
 
-func Equals(first []string, second []string) bool {
+func Equals[T comparable](first []T, second []T) bool {
+	if len(first) != len(second) {
+		return false
+	}
+
 	for i := 0; i < len(first); i++ {
 		if first[i] != second[i] {
 			return false
@@ -213,23 +225,23 @@ func GenerateCombinationsLengthNChannel(items []int, n int, abort <-chan []int) 
 	return c
 }
 
-func GenerateCombinationsLengthN(items []int, n int) [][]int {
+func GenerateCombinationsLengthN[T comparable](items []T, n int) [][]T {
 	length := len(items)
-	itemsCopy := make([]int, length)
+	itemsCopy := make([]T, length)
 	copy(itemsCopy, items)
 
 	if length == 0 || n > length || n == 0 {
-		return [][]int{{}}
+		return [][]T{{}}
 	} else if n == length {
-		initial := make([]int, length)
+		initial := make([]T, length)
 		copy(initial, itemsCopy)
-		return [][]int{initial}
+		return [][]T{initial}
 	}
 
 	if n == length {
-		combinations := [][]int{}
+		combinations := [][]T{}
 		for _, element := range itemsCopy {
-			combinations = append(combinations, []int{element})
+			combinations = append(combinations, []T{element})
 			return combinations
 		}
 	}
@@ -237,7 +249,7 @@ func GenerateCombinationsLengthN(items []int, n int) [][]int {
 	first := itemsCopy[0]
 	nMinusOneCombinations := GenerateCombinationsLengthN(itemsCopy[1:], n-1)
 	for i := range nMinusOneCombinations {
-		nMinusOneCombinations[i] = append([]int{first}, nMinusOneCombinations[i]...)
+		nMinusOneCombinations[i] = append([]T{first}, nMinusOneCombinations[i]...)
 	}
 	return append(nMinusOneCombinations, GenerateCombinationsLengthN(itemsCopy[1:], n)...)
 }
@@ -280,7 +292,17 @@ func GenerateAllCombinations(items []int) [][]int {
 }
 
 // IndexOf returns the index of the selected item or -1 if not present
-func IndexOf(item string, slice []string) int {
+func IndexOf[T comparable](item T, slice []T) int {
+	for i := range slice {
+		if slice[i] == item {
+			return i
+		}
+	}
+	return -1
+}
+
+// IndexOfStr returns the index of the selected item or -1 if not present
+func IndexOfStr(item string, slice []string) int {
 	for i := range slice {
 		if slice[i] == item {
 			return i
@@ -308,4 +330,27 @@ func Reverse[T comparable](input []T) []T {
 	}
 
 	return reversed
+}
+
+// TrimRight removes all trailing elements from the slice that are equal to the trimValue
+func TrimRight[T comparable](input []T, trimValue T) []T {
+	for i := len(input) - 1; i >= 0; i-- {
+		if input[i] != trimValue {
+			return input[:i+1]
+		}
+	}
+	return input
+}
+
+// IndexOfSubset returns the index of the subset in the slice or -1 if not present
+func IndexOfSubset[T comparable](slice []T, subset []T) int {
+	if len(slice) < len(subset) {
+		return -1
+	}
+	for i := 0; i < len(slice)-len(subset)+1; i++ {
+		if Equals(slice[i:i+len(subset)], subset) {
+			return i
+		}
+	}
+	return -1
 }

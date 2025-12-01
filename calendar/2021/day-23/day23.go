@@ -160,7 +160,7 @@ func move(s state, hallEntrances []int) int {
 				for hallLocation := range currentState.hallway {
 					animalType := currentState.hallway[hallLocation]
 					if animalType != "" {
-						targetRoom := slices.IndexOf(animalType, roomOrder)
+						targetRoom := slices.IndexOfStr(animalType, roomOrder)
 						howManyInFinalRoom := 0
 						for _, o := range currentState.rooms[targetRoom] {
 							if o != "" {
