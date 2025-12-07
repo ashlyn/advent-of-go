@@ -140,6 +140,14 @@ func Sum(slice []int) int {
 	return sum
 }
 
+func Product(slice []int) int {
+	product := 1
+	for i := range slice {
+		product *= slice[i]
+	}
+	return product
+}
+
 func Swap(slice interface{}, i int, j int) {
 	if reflect.TypeOf(slice).Kind() == reflect.Slice {
 		reflect.Swapper(slice)(i, j)

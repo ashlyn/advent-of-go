@@ -33,3 +33,19 @@ func Reverse(str string) string {
 
 	return ret
 }
+
+// IndexesAny returns the indexes of any of the characters in chars found in str
+func IndexesAny(str string, chars string) []int {
+	indexes := []int{}
+
+	for i := 0; i < len(str); i++ {
+		for j := 0; j < len(chars); j++ {
+			if str[i] == chars[j] {
+				indexes = append(indexes, i)
+				break
+			}
+		}
+	}
+
+	return indexes
+}
