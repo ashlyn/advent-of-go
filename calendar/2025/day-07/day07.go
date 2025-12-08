@@ -1,6 +1,7 @@
 package main
 
 import (
+	"advent-of-go/utils/colors"
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/grid"
 	"advent-of-go/utils/slices"
@@ -14,10 +15,10 @@ func main() {
 	input := files.ReadFile(7, 2025, "\n")
 	sw := time.Now()
 	println(solvePart1(input))
-	fmt.Printf("Solved part 1 in %v\n", time.Since(sw))
+	fmt.Printf("%s Solved part 1 in %v\n", colors.GreenString("✓"), time.Since(sw))
 	sw = time.Now()
 	println(solvePart2(input))
-	fmt.Printf("Solved part 2 in %v\n", time.Since(sw))
+	fmt.Printf("%s Solved part 2 in %v\n", colors.GreenString("✓"), time.Since(sw))
 }
 
 func solvePart1(input []string) int {
@@ -51,16 +52,9 @@ func solvePart2(input []string) int {
 	for y := start.Y; y < len(input); y++ {
 		line := input[y]
 		for x := 0; x < len(line); x++ {
-			current := line[x]
-			if current == '^' {
-				// count a new timeline if we don't run off the left edge
-				if x > 0 {
-					splitsAtColumns[x-1] += splitsAtColumns[x]
-				}
-				// count a new timeline if we don't run off the right edge
-				if x < len(line)-1 {
-					splitsAtColumns[x+1] += splitsAtColumns[x]
-				}
+			if line[x] == '^' {
+				splitsAtColumns[x-1] += splitsAtColumns[x]
+				splitsAtColumns[x+1] += splitsAtColumns[x]
 				splitsAtColumns[x] = 0
 			}
 		}

@@ -18,3 +18,47 @@ var Cyan   = "\033[36m"
 var Gray   = "\033[37m"
 // White changes the console color to white
 var White  = "\033[97m"
+
+func formatColorString(color string, str string) string {
+	return color + str + Reset
+}
+
+// RedString returns the given string formatted in red color
+func RedString(str string) string {
+	return formatColorString(Red, str)
+}
+
+// GreenString returns the given string formatted in green color
+func GreenString(str string) string {
+	return formatColorString(Green, str)
+}
+
+// YellowString returns the given string formatted in yellow color
+func YellowString(str string) string {
+	return formatColorString(Yellow, str)
+}
+
+// BlueString returns the given string formatted in blue color
+func BlueString(str string) string {
+	return formatColorString(Blue, str)
+}
+
+// PurpleString returns the given string formatted in purple color
+func PurpleString(str string) string {
+	return formatColorString(Purple, str)
+}
+
+// CyanString returns the given string formatted in cyan color
+func CyanString(str string) string {
+	return formatColorString(Cyan, str)
+}
+
+// GrayString returns the given string formatted in gray color
+func GrayString(str string) string {
+	return formatColorString(Gray, str)
+}
+
+// WhiteString returns the given string formatted in white color
+func WhiteString(str string) string {
+	return formatColorString(White, str)
+}
