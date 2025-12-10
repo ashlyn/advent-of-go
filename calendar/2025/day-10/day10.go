@@ -3,13 +3,20 @@ package main
 import (
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/str"
+	"fmt"
 	"math"
+	"sort"
+	"time"
 )
 
 func main() {
 	input := files.ReadFile(10, 2025, "\n")
+	sw := time.Now()
 	println(solvePart1(input))
+	fmt.Printf("Solved part 1 in %v\n", time.Since(sw))
+	sw = time.Now()
 	println(solvePart2(input))
+	fmt.Printf("Solved part 2 in %v\n", time.Since(sw))
 }
 
 func solvePart1(input []string) int {
@@ -17,7 +24,7 @@ func solvePart1(input []string) int {
 
 	machines := parseInput(input)
 	for _, machine := range machines {
-		result += mashButtons(machine)
+		result += pressLightButtons(machine)
 	}
 
 	return result
@@ -25,7 +32,13 @@ func solvePart1(input []string) int {
 
 func solvePart2(input []string) int {
 	result := 0
-
+	
+	machines := parseInput(input)
+	for _, machine := range machines {
+		presses := pressJoltageButtons(machine)
+		result += presses
+		fmt.Println(presses)
+	}
 
 	return result
 }
@@ -42,11 +55,14 @@ func parseLine(line string) machine {
 	buttonMatches := str.ParseAllGroupsBetween("(", ")", line)
 	buttons := make([][]int, len(buttonMatches))
 	for i := 0; i < len(buttonMatches); i++ {
-		buttons[i] = str.ParseDelimetedStringToInts(buttonMatches[i], ",")
+		buttons[i] = str.ParseDelimitedStringToInts(buttonMatches[i], ",")
 	}
+	sort.Slice(buttons, func(i, j int) bool {
+		return len(buttons[i]) >= len(buttons[j])
+	})
 
 	joltageMatches := str.ParseAllGroupsBetween("{", "}", line)
-	joltageRequirements := str.ParseDelimetedStringToInts(joltageMatches[0], ",")
+	joltageRequirements := str.ParseDelimitedStringToInts(joltageMatches[0], ",")
 
 	return machine{
 		lightPattern: lightPattern,
@@ -63,7 +79,7 @@ func parseInput(input []string) []machine {
 	return machines
 }
 
-func pressButton(lights string, button []int) string {
+func pressButtonForLights(lights string, button []int) string {
 	next := []rune(lights)
 	for _, lightIndex := range button {
 		if next[lightIndex] == '#' {
@@ -75,6 +91,15 @@ func pressButton(lights string, button []int) string {
 	return string(next)
 }
 
+func pressButtonForJoltage(joltage []int, button []int) []int {
+	next := make([]int, len(joltage))
+	copy(next, joltage)
+	for _, index := range button {
+		next[index]++
+	}
+	return next
+}
+
 func getStartingLightsForPattern(pattern string) string {
 	startingLights := ""
 	for i := 0; i < len(pattern); i++ {
@@ -83,7 +108,15 @@ func getStartingLightsForPattern(pattern string) string {
 	return startingLights
 }
 
-func mashButtons(machine machine) int {
+func getStartingJoltageForRequirements(requirements []int) []int {
+	startingJoltage := make([]int, len(requirements))
+	for i := 0; i < len(requirements); i++ {
+		startingJoltage[i] = 0
+	}
+	return startingJoltage
+}
+
+func pressLightButtons(machine machine) int {
 	currentLights := getStartingLightsForPattern(machine.lightPattern)
 	fewestPresses := map[string]int{
 		currentLights: 0,
@@ -100,7 +133,7 @@ func mashButtons(machine machine) int {
 		}
 
 		for _, button := range machine.buttons {
-			next := pressButton(current, button)
+			next := pressButtonForLights(current, button)
 			if fewestPresses[next] == 0 || fewestPresses[next] > fewestPresses[current] + 1 {
 				fewestPresses[next] = fewestPresses[current] + 1
 				queue = append(queue, next)
@@ -110,3 +143,64 @@ func mashButtons(machine machine) int {
 
 	return fewestPresses[machine.lightPattern]
 }
+
+func key(s []int) string {
+	return fmt.Sprint(s)
+}
+
+func equals(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func exceedsJoltageRequirements(joltage []int, requirements []int) bool {
+	for i := 0; i < len(joltage); i++ {
+		if joltage[i] > requirements[i] {
+			return true
+		}
+	}
+	return false
+}
+
+func pressJoltageButtons(machine machine) int {
+	currentJoltage := getStartingJoltageForRequirements(machine.joltageRequirements)
+
+	fewestPresses := map[string]int{
+		key(currentJoltage): 0,
+		key(machine.joltageRequirements): math.MaxInt,
+	}
+
+	queue := [][]int{currentJoltage}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if equals(current, machine.joltageRequirements) {
+			continue
+		}
+
+		if exceedsJoltageRequirements(current, machine.joltageRequirements) {
+			continue
+		}
+
+		for _, button := range machine.buttons {
+			nextJoltage := pressButtonForJoltage(current, button)
+			nextKey := key(nextJoltage)
+			currentKey := key(current)
+			if fewestPresses[nextKey] == 0 || fewestPresses[nextKey] > fewestPresses[currentKey] + 1 {
+				fewestPresses[nextKey] = fewestPresses[currentKey] + 1
+				queue = append(queue, nextJoltage)
+			}
+		}
+	}
+
+	return fewestPresses[key(machine.joltageRequirements)]
+}
+

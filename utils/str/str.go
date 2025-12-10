@@ -66,8 +66,8 @@ func ParseAllGroupsBetween(left, right string, line string) []string {
 	return captured
 }
 
-// ParseDelimetedStringToInts parses a string delimited by the specified delimiter into a slice of ints
-func ParseDelimetedStringToInts(input string, delimiter string) []int {
+// ParseDelimitedStringToInts parses a string delimited by the specified delimiter into a slice of ints
+func ParseDelimitedStringToInts(input string, delimiter string) []int {
 	parts := strings.Split(input, delimiter)
 	ints := make([]int, len(parts))
 	for i, part := range parts {

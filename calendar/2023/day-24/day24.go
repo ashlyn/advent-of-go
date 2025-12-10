@@ -25,7 +25,7 @@ func solvePart2(input []string) int {
 	hailstones := parseInput(input)
 	// generate system of 9 equations using three hailstones (only three needed to solve in three dimensions)
 	// intersect time for hailstones 0, 1, 2 are variables t, u, v respectively
-	// x, y, z are the coordinates of the starting point (criticial variables to solve for)
+	// x, y, z are the coordinates of the starting point (critical variables to solve for)
 	// a, b, c are the velocity components of the rock
 	for i := 0; i < 3; i++ {
 		h := hailstones[i]
