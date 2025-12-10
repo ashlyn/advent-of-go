@@ -37,3 +37,35 @@ func Perimeter(vertices []grid.Coords) int {
 	}
 	return perimeter
 }
+
+func pointsOnLineSegment(a, b grid.Coords) []grid.Coords {
+	points := []grid.Coords{}
+	if a.X == b.X {
+		minY, maxY := maths.Min(a.Y, b.Y), maths.Max(a.Y, b.Y)
+		for y := minY; y <= maxY; y++ {
+			points = append(points, grid.Coords{ X: a.X, Y: y })
+		}
+	} else if a.Y == b.Y {
+		minX, maxX := maths.Min(a.X, b.X), maths.Max(a.X, b.X)
+		for x := minX; x <= maxX; x++ {
+			points = append(points, grid.Coords{ X: x, Y: a.Y })
+		}
+	}
+	return points
+}
+
+// LineSegmentsOverlap determines if two line segments A and B intersect
+func LineSegmentsOverlap(a, b, c, d grid.Coords) bool {
+	orientations := []bool{
+		areCounterClockwise(a, b, c),
+		areCounterClockwise(b, c, d),
+		areCounterClockwise(a, b, c),
+		areCounterClockwise(a, b, d),
+	}
+
+	return orientations[0] != orientations[1] && orientations[2] != orientations[3]
+}
+
+func areCounterClockwise(a, b, c grid.Coords) bool {
+	return (c.Y - a.Y) * (b.X - a.X) > (b.Y - a.Y) * (c.X - a.X)
+}

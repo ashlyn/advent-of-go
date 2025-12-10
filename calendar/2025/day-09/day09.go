@@ -1,22 +1,27 @@
 package main
 
 import (
-	"advent-of-go/utils/colors"
 	"advent-of-go/utils/files"
 	"advent-of-go/utils/grid"
 	"advent-of-go/utils/maths"
 	"fmt"
+	"go/types"
 	"sort"
+	"time"
 )
 
 func main() {
 	input := files.ReadFile(9, 2025, "\n")
+	sw := time.Now()
 	println(solvePart1(input))
+	fmt.Printf("Solved part 1 in %v\n", time.Since(sw))
+	sw = time.Now()
 	println(solvePart2(input))
+	fmt.Printf("Solved part 2 in %v\n", time.Since(sw))
 }
 
 func solvePart1(input []string) int {
-	coords, _, _ := parseInputAsRedTilesOnly(input)
+	coords := parseCorners(input)
 	pairs := generateAllPairs(coords)
 	sort.Slice(pairs, func(i, j int) bool {
 		return pairs[i].area > pairs[j].area
@@ -24,15 +29,74 @@ func solvePart1(input []string) int {
 	return pairs[0].area
 }
 
-// 1302141939 too low
-// 2875248828 too high
 func solvePart2(input []string) int {
-	return checkRectangles(input)
+	coords := parseCorners(input)
+	pairs := generateAllPairs(coords)
+	compressedCoords, compressedPairs, _, _ := compressData(coords, pairs)
+	compressedPair := checkRectangles(compressedCoords, compressedPairs)
+	return compressedPair.area
 }
 
 type pair struct {
 	a, b grid.Coords
 	area int
+}
+
+type compressedPair struct {
+	ua, ub grid.Coords
+	ca, cb grid.Coords
+	area   int
+}
+func compressData(coords []grid.Coords,pairs []pair) ([]grid.Coords, []compressedPair, []int, []int) {
+	uniqueX, uniqueY := map[int]types.Nil{}, map[int]types.Nil{}
+	for _, p := range pairs {
+		uniqueX[p.a.X] = types.Nil{}
+		uniqueY[p.a.Y] = types.Nil{}
+		uniqueX[p.b.X] = types.Nil{}
+		uniqueY[p.b.Y] = types.Nil{}
+	}
+
+	sortedX, sortedY := []int{}, []int{}
+	for x := range uniqueX {
+		sortedX = append(sortedX, x)
+	}
+	for y := range uniqueY {
+		sortedY = append(sortedY, y)
+	}
+	sort.Ints(sortedX)
+	sort.Ints(sortedY)
+
+	xMapping, yMapping := map[int]int{}, map[int]int{}
+	reverseXMapping, reverseYMapping := map[int]int{}, map[int]int{}
+	for i, x := range sortedX {
+		xMapping[i] = x
+		reverseXMapping[x] = i
+	}
+	for i, y := range sortedY {
+		yMapping[i] = y
+		reverseYMapping[y] = i
+	}
+
+	compressedPairs := make([]compressedPair, len(pairs))
+	for i, c := range pairs {
+		compressedPairs[i] = compressedPair{
+			ua: c.a,
+			ub: c.b,
+			ca: grid.Coords{ X: reverseXMapping[c.a.X], Y: reverseYMapping[c.a.Y] },
+			cb: grid.Coords{ X: reverseXMapping[c.b.X], Y: reverseYMapping[c.b.Y] },
+			area: c.area,
+		}
+	}
+
+	compressedCoords := make([]grid.Coords, len(coords))
+	for i, c := range coords {
+		compressedCoords[i] = grid.Coords{
+			X: reverseXMapping[c.X],
+			Y: reverseYMapping[c.Y],
+		}
+	}
+
+	return compressedCoords, compressedPairs, sortedX, sortedY
 }
 
 func generateAllPairs(coords []grid.Coords) []pair {
@@ -46,80 +110,18 @@ func generateAllPairs(coords []grid.Coords) []pair {
 	return pairs
 }
 
-func parseInputAsRedTilesOnly(input []string) ([]grid.Coords, grid.Coords, grid.Coords) {
+
+func parseCorners(input []string) []grid.Coords {
 	coords := make([]grid.Coords, len(input))
-	minX, maxX, minY, maxY := maths.MaxInt(), 0, maths.MaxInt(), 0
 	for i := 0; i < len(input); i++ {
 		c := grid.ParseCoords(input[i])
-		if c.X < minX {
-			minX = c.X
-		}
-		if c.X > maxX {
-			maxX = c.X
-		}
-		if c.Y < minY {
-			minY = c.Y
-		}
-		if c.Y > maxY {
-			maxY = c.Y
-		}
 		coords[i] = c
 	}
-	return coords, grid.Coords{ X: minX, Y: minY }, grid.Coords{ X: maxX, Y: maxY }
+	return coords
 }
 
 func getAreaInRectangle(a, b grid.Coords) int {
 	return (maths.Abs(a.X - b.X) + 1) * (maths.Abs(a.Y - b.Y) + 1)
-}
-
-var red, green byte = 'r', 'g'
-func parseInputAsRedGreenTiles(input []string) (redTiles []grid.Coords, redGreenTiles map[grid.Coords]byte, min, max grid.Coords) {
-	redTiles, min, max = parseInputAsRedTilesOnly(input)
-	redGreenTiles = make(map[grid.Coords]byte)
-	for r := 0; r < len(redTiles); r++ {
-		redGreenTiles[redTiles[r]] = red
-	}
-
-	for r := 0; r < len(redTiles); r++ {
-		between := []grid.Coords{}
-		if r < len(redTiles) - 1 {
-			between = getTilesBetween(redTiles[r], redTiles[r+1])
-		} else {
-			between = getTilesBetween(redTiles[r], redTiles[0])
-		}
-		for b := 0; b < len(between); b++ {
-			redGreenTiles[between[b]] = green
-		}
-	}
-
-	fmt.Println("built edges, starting raycasting")
-	insidesFound := 0
-
-	for y := min.Y; y <= max.Y; y++ {
-		onEdge := false
-		edgeCount := 0
-		for x := min.X; x <= max.X; x++ {
-			c := grid.Coords{ X: x, Y: y }
-			_, exists := redGreenTiles[c]
-			if onEdge && !exists {
-				onEdge = false
-				edgeCount++
-			}
-			if exists {
-				onEdge = true
-			}
-			if edgeCount % 2 == 1 && !exists {
-				insidesFound++
-				if insidesFound % 1000 == 0 {
-					fmt.Println(insidesFound, min, max, x, y)
-				}
-				redGreenTiles[c] = green
-			}
-		}
-	}
-
-	fmt.Println("finished parsing grid")
-	return redTiles, redGreenTiles, min, max
 }
 
 func getTilesBetween(a, b grid.Coords) []grid.Coords {
@@ -136,138 +138,96 @@ func getTilesBetween(a, b grid.Coords) []grid.Coords {
 	return tiles
 }
 
-func printGrid(tiles map[grid.Coords]byte, min, max grid.Coords) {
-	for y := min.Y - 1; y <= max.Y + 1; y++ {
-		line := ""
-		for x := min.X - 1; x <= max.X + 1; x++ {
-			c := grid.Coords{ X: x, Y: y }
-			if color, exists := tiles[c]; exists {
-				if color == red {
-					line += colors.RedString("#")
-				} else if color == green {
-					line += colors.GreenString("X")
-				}
-			} else {
-				line += colors.WhiteString(".")
-			}
-		}
-		fmt.Println(line)
-	}
-}
-
-func checkRectangles(input []string) int {
-	redTiles, min, _ := parseInputAsRedTilesOnly(input)
-	edges := make(map[grid.Coords]byte)
-	for r := 0; r < len(redTiles); r++ {
-		edges[redTiles[r]] = red
-	}
-
-	for r := 0; r < len(redTiles); r++ {
-		between := []grid.Coords{}
-		if r < len(redTiles) - 1 {
-			between = getTilesBetween(redTiles[r], redTiles[r+1])
-		} else {
-			between = getTilesBetween(redTiles[r], redTiles[0])
-		}
-		for b := 0; b < len(between); b++ {
-			edges[between[b]] = green
-		}
-	}
-
-	pairs := generateAllPairs(redTiles)
+var red, green byte = 'r', 'g'
+func checkRectangles(corners []grid.Coords, pairs []compressedPair) compressedPair {
 	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].area > pairs[j].area
+		return pairs[i].area >= pairs[j].area
 	})
 
+	min, max := grid.Coords{}, grid.Coords{}
+
+	tileMap := map[grid.Coords]byte{}
+	cache := make(map[grid.Coords]bool)
+	for r := 0; r < len(corners); r++ {
+		c := corners[r]
+		next := (r + 1) % len(corners)
+		if c.X < min.X {
+			min.X = c.X
+		}
+		if c.X > max.X {
+			max.X = c.X + 1
+		}
+		if c.Y < min.Y {
+			min.Y = c.Y
+		}
+		if c.Y > max.Y {
+			max.Y = c.Y + 1
+		}
+
+		between := getTilesBetween(c, corners[next])
+		for b := range between {
+			tileMap[between[b]] = green
+			cache[between[b]] = true
+		}
+		tileMap[c] = red
+		cache[c] = true
+	}
+
 	for i := 0; i < len(pairs); i++ {
-		topLeft := grid.Coords{ X: maths.Min(pairs[i].a.X, pairs[i].b.X), Y: maths.Min(pairs[i].a.Y, pairs[i].b.Y) }
-		topRight := grid.Coords{ X: maths.Max(pairs[i].a.X, pairs[i].b.X), Y: maths.Min(pairs[i].a.Y, pairs[i].b.Y) }
-		bottomLeft := grid.Coords{ X: maths.Min(pairs[i].a.X, pairs[i].b.X), Y: maths.Max(pairs[i].a.Y, pairs[i].b.Y) }
-		bottomRight := grid.Coords{ X: maths.Max(pairs[i].a.X, pairs[i].b.X), Y: maths.Max(pairs[i].a.Y, pairs[i].b.Y) }
-		corners := [4]grid.Coords{ topLeft, topRight, bottomLeft, bottomRight }
-		cornersOnEdges := 0
-		for _, corner := range corners {
-			if _, exists := edges[corner]; !exists {
-				cornersOnEdges++
+		p := pairs[i]
+		min := grid.Coords{ X: maths.Min(p.ca.X, p.cb.X), Y: maths.Min(p.ca.Y, p.cb.Y) }
+		max := grid.Coords{ X: maths.Max(p.ca.X, p.cb.X), Y: maths.Max(p.ca.Y, p.cb.Y) }
+		isValid := true
+		// check if any of the inner tiles are on the border
+		// will not work for pieces that are fully outside (e.g. 1-2 sides on perimeter) as in smaple
+		for x := min.X + 1; x < max.X; x++ {
+			for y := min.Y + 1; y < max.Y; y++ {
+				if _, isBorder := tileMap[grid.Coords{ X: x, Y: y }]; isBorder {
+					isValid = false
+					continue
+				}
 			}
 		}
-		if cornersOnEdges > 1 {
-			// rectangles with more than one corner not on an edge can't be valid
+
+		if !isValid {
 			continue
 		}
-		area := getAreaInRectangle(pairs[i].a, pairs[i].b)
 
-		// raycast across the edges to see if this is a valid rectangle
-		valid := true
-		topEdgeCount, bottomEdgeCount := 0, 0
-		topOnEdge, bottomOnEdge := false, false
-		for x := min.X; x <= topRight.X; x++ {
-			topY, bottomY := topLeft.Y, bottomLeft.Y
-			topC := grid.Coords{ X: x, Y: topY }
-			bottomC := grid.Coords{ X: x, Y: bottomY }
-			_, topExists := edges[topC]
-			_, bottomExists := edges[bottomC]
-			if topOnEdge && !topExists {
-				topOnEdge = false
-				topEdgeCount++
+		topBorderCount, bottomBorderCount, leftBorderCount, rightBorderCount := 0, 0, 0, 0
+		for x := min.X; x <= max.X; x++ {
+			if _, exists := tileMap[grid.Coords{ X: x, Y: min.Y }]; exists {
+				topBorderCount++
 			}
-			if topExists {
-				topOnEdge = true
-			}
-			if bottomOnEdge && !bottomExists {
-				bottomOnEdge = false
-				bottomEdgeCount++
-			}
-			if bottomExists {
-				bottomOnEdge = true
-			}
-			if x >= topLeft.X && x <= topRight.X && !topExists && topEdgeCount % 2 == 0 {
-				valid = false
-				break
-			}
-			if x >= bottomLeft.X && x <= bottomRight.X && !bottomExists && bottomEdgeCount % 2 == 0 {
-				valid = false
-				break
+			if _, exists := tileMap[grid.Coords{ X: x, Y: max.Y }]; exists {
+				bottomBorderCount++
 			}
 		}
-
-		leftEdgeCount, rightEdgeCount := 0, 0
-		leftOnEdge, rightOnEdge := false, false
-		for y := min.Y; y <= bottomLeft.Y; y++ {
-			leftX, rightX := topLeft.X, topRight.X
-			leftC := grid.Coords{ X: leftX, Y: y }
-			rightC := grid.Coords{ X: rightX, Y: y }
-			_, leftExists := edges[leftC]
-			_, rightExists := edges[rightC]
-			if leftOnEdge && !leftExists {
-				leftOnEdge = false
-				leftEdgeCount++
+		for y := min.Y; y <= max.Y; y++ {
+			if _, exists := tileMap[grid.Coords{ X: min.X, Y: y }]; exists {
+				leftBorderCount++
 			}
-			if leftExists {
-				leftOnEdge = true
-			}
-			if rightOnEdge && !rightExists {
-				rightOnEdge = false
-				rightEdgeCount++
-			}
-			if rightExists {
-				rightOnEdge = true
-			}
-			if y >= topLeft.Y && y <= bottomLeft.Y && !leftExists && leftEdgeCount % 2 == 0 {
-				valid = false
-				break
-			}
-			if y >= topRight.Y && y <= bottomRight.Y && !rightExists && rightEdgeCount % 2 == 0 {
-				valid = false
-				break
+			if _, exists := tileMap[grid.Coords{ X: max.X, Y: y }]; exists {
+				rightBorderCount++
 			}
 		}
-
-		if valid {
-			fmt.Println(i)
-			return area
+		horizontalLength := max.X - min.X + 1
+		verticalLength := max.Y - min.Y + 1
+		diffs := [4]int { horizontalLength - topBorderCount, horizontalLength - bottomBorderCount,
+			verticalLength - leftBorderCount, verticalLength - rightBorderCount }
+		zeroCount := 0
+		for _, d := range diffs {
+			if d == 0 {
+				zeroCount++
+			}
+		}
+		if zeroCount == 2 {
+			isValid = false
+		}
+		if isValid {
+			fmt.Println(p)
+			return p
 		}
 	}
 
-	return -1
+	return compressedPair{ area: -1 }
 }
