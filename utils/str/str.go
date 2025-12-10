@@ -1,6 +1,11 @@
 package str
 
-import "errors"
+import (
+	"errors"
+	"regexp"
+	"strconv"
+	"strings"
+)
 
 func CharAt(str string, pos int) (string, error) {
 	if pos >= len(str) {
@@ -48,4 +53,25 @@ func IndexesAny(str string, chars string) []int {
 	}
 
 	return indexes
+}
+
+// ParseAllGroupsBetween returns all substrings found between left and right delimiters
+func ParseAllGroupsBetween(left, right string, line string) []string {
+	pattern := regexp.MustCompile(`(?s)` + regexp.QuoteMeta(left) + `(.*?)` + regexp.QuoteMeta(right))
+	matches := pattern.FindAllStringSubmatch(line, -1)
+	captured := make([]string, len(matches))
+	for i, match := range matches {
+		captured[i] = match[1]
+	}
+	return captured
+}
+
+// ParseDelimetedStringToInts parses a string delimited by the specified delimiter into a slice of ints
+func ParseDelimetedStringToInts(input string, delimiter string) []int {
+	parts := strings.Split(input, delimiter)
+	ints := make([]int, len(parts))
+	for i, part := range parts {
+		ints[i], _ = strconv.Atoi(part)
+	}
+	return ints
 }
