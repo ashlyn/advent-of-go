@@ -18,11 +18,24 @@ func solvePart1(input []string) int {
 }
 
 func solvePart2(input []string) int {
-	result := 0
+	adjacencyList := parseInput(input)
 
+	// start segments
+	svrToDacPaths := countPathsDfs(adjacencyList, "svr", "dac")
+	svrToFftPaths := countPathsDfs(adjacencyList, "svr", "fft")
 
+	// middle segments
+	dacToFftPaths := countPathsDfs(adjacencyList, "dac", "fft")
+	fftToDacPaths := countPathsDfs(adjacencyList, "fft", "dac")
 
-	return result
+	// end segments
+	dacToOutPaths := countPathsDfs(adjacencyList, "dac", "out")
+	fftToOutPaths := countPathsDfs(adjacencyList, "fft", "out")
+
+	dacThenFftPaths := svrToDacPaths * dacToFftPaths * fftToOutPaths
+	fftThenDacPaths := svrToFftPaths * fftToDacPaths * dacToOutPaths
+
+	return dacThenFftPaths + fftThenDacPaths
 }
 
 func parseInput(input []string) map[string][]string {
@@ -51,7 +64,6 @@ func bfs(adjacencyList map[string][]string, start, end string) [][]string {
 			validPaths = append(validPaths, currentPath)
 			continue
 		}
-
 		pathKey := strings.Join(currentPath, "-")
 		if !visited[pathKey] {
 			visited[pathKey] = true
@@ -67,4 +79,42 @@ func bfs(adjacencyList map[string][]string, start, end string) [][]string {
 	}
 
 	return validPaths
+}
+
+func countPathsDfs(adjacencyList map[string][]string, start, end string) int {
+	pathCountFromKeyToEnd := map[string]int{}
+	for device, outputs := range adjacencyList {
+		pathCountFromKeyToEnd[device] = -1
+		for _, output := range outputs {
+			pathCountFromKeyToEnd[output] = -1
+		}
+	}
+	pathCountFromKeyToEnd[end] = 1
+
+	for pathsFromStart, _ := pathCountFromKeyToEnd[start]; pathsFromStart == -1; pathsFromStart, _ = pathCountFromKeyToEnd[start] {
+		viablePathFound := false
+		for device, pathCount := range pathCountFromKeyToEnd {
+			if pathCount == -1 {
+				pathsFromAllOutputsExplored := true
+				sum := 0
+				for _, output := range adjacencyList[device] {
+					if pathCountFromKeyToEnd[output] != -1 {
+						sum += pathCountFromKeyToEnd[output]
+					} else {
+						pathsFromAllOutputsExplored = false
+					}
+				}
+				if pathsFromAllOutputsExplored {
+					pathCountFromKeyToEnd[device] = sum
+					viablePathFound = true
+				}
+			}
+		}
+		// If no viable path was found in this iteration, break as there is no path from start to end
+		if !viablePathFound {
+			return 0
+		}
+	}
+
+	return pathCountFromKeyToEnd[start]
 }
