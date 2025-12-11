@@ -2,6 +2,8 @@ package main
 
 import (
 	"advent-of-go/utils/files"
+	"advent-of-go/utils/matrices"
+	"advent-of-go/utils/slices"
 	"advent-of-go/utils/str"
 	"fmt"
 	"math"
@@ -35,9 +37,9 @@ func solvePart2(input []string) int {
 	
 	machines := parseInput(input)
 	for _, machine := range machines {
-		presses := pressJoltageButtons(machine)
-		result += presses
-		fmt.Println(presses)
+		m := buildMatrix(machine)
+		solution := matrices.SolveMatrix(m, matrices.Minimize, matrices.DefaultLimitConfiguration)
+		result += slices.Sum(solution)
 	}
 
 	return result
@@ -91,29 +93,12 @@ func pressButtonForLights(lights string, button []int) string {
 	return string(next)
 }
 
-func pressButtonForJoltage(joltage []int, button []int) []int {
-	next := make([]int, len(joltage))
-	copy(next, joltage)
-	for _, index := range button {
-		next[index]++
-	}
-	return next
-}
-
 func getStartingLightsForPattern(pattern string) string {
 	startingLights := ""
 	for i := 0; i < len(pattern); i++ {
 		startingLights += "."
 	}
 	return startingLights
-}
-
-func getStartingJoltageForRequirements(requirements []int) []int {
-	startingJoltage := make([]int, len(requirements))
-	for i := 0; i < len(requirements); i++ {
-		startingJoltage[i] = 0
-	}
-	return startingJoltage
 }
 
 func pressLightButtons(machine machine) int {
@@ -144,63 +129,26 @@ func pressLightButtons(machine machine) int {
 	return fewestPresses[machine.lightPattern]
 }
 
-func key(s []int) string {
-	return fmt.Sprint(s)
-}
+func buildMatrix(ma machine) [][]int {
+	m, n := len(ma.joltageRequirements), len(ma.buttons)
+	matrix := make([][]int, m)
 
-func equals(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-func exceedsJoltageRequirements(joltage []int, requirements []int) bool {
-	for i := 0; i < len(joltage); i++ {
-		if joltage[i] > requirements[i] {
-			return true
-		}
-	}
-	return false
-}
-
-func pressJoltageButtons(machine machine) int {
-	currentJoltage := getStartingJoltageForRequirements(machine.joltageRequirements)
-
-	fewestPresses := map[string]int{
-		key(currentJoltage): 0,
-		key(machine.joltageRequirements): math.MaxInt,
-	}
-
-	queue := [][]int{currentJoltage}
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		if equals(current, machine.joltageRequirements) {
-			continue
-		}
-
-		if exceedsJoltageRequirements(current, machine.joltageRequirements) {
-			continue
-		}
-
-		for _, button := range machine.buttons {
-			nextJoltage := pressButtonForJoltage(current, button)
-			nextKey := key(nextJoltage)
-			currentKey := key(current)
-			if fewestPresses[nextKey] == 0 || fewestPresses[nextKey] > fewestPresses[currentKey] + 1 {
-				fewestPresses[nextKey] = fewestPresses[currentKey] + 1
-				queue = append(queue, nextJoltage)
+	for i := 0; i < m; i++ {
+		matrix[i] = make([]int, n + 1)
+		for j := 0; j < n; j++ {
+			incrementsButtonAtI := false
+			for _, pos := range ma.buttons[j] {
+				if pos == i {
+					incrementsButtonAtI = true
+					break
+				}
+			}
+			if incrementsButtonAtI {
+				matrix[i][j] = 1
 			}
 		}
+		matrix[i][n] = ma.joltageRequirements[i]
 	}
 
-	return fewestPresses[key(machine.joltageRequirements)]
+	return matrix
 }
-

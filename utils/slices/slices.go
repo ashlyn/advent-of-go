@@ -193,6 +193,15 @@ func GeneratePermutations(items []int) [][]int {
 	return permutations
 }
 
+// Example usage:
+// abort := make(chan []int)
+// go func() {
+//     time.Sleep(1 * time.Second)
+//     close(abort)
+// }()
+// for combo := range GenerateCombinationsLengthNChannel([]int{1,2,3,4}, 2, abort) {
+//     fmt.Println(combo)
+// }
 func GenerateCombinationsLengthNChannel(items []int, n int, abort <-chan []int) <-chan []int {
 	c := make(chan []int)
 	go func() {
