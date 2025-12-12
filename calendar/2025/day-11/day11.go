@@ -20,7 +20,12 @@ func solvePart1(input []string) int {
 func solvePart2(input []string) int {
 	adjacencyList := parseInput(input)
 
-	// start segments
+	// Valid paths take one of two forms:
+	//         / ① --> dac --> ② --> fft --> ③ \
+	//  svr -->                                   --> out
+	//         \ ① --> fft --> ② --> dac --> ③ /
+
+	// first segments
 	svrToDacPaths := countPathsDfs(adjacencyList, "svr", "dac")
 	svrToFftPaths := countPathsDfs(adjacencyList, "svr", "fft")
 
